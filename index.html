@@ -97,22 +97,39 @@
   <section class="hero">
     <span class="pill" data-i18n="hero_pill">100% 浏览器本地离线运算 · 数据不上传服务器 · 零安装即开即用</span>
     <h1 data-i18n="hero_title">隐私优先的免费办公 & 效率工具矩阵</h1>
-    <p data-i18n="hero_desc">财务报销多表合并、商业报价单 A4 PDF、电商主图批压缩与利润核算、Markdown 转 Anki 卡片、Agent 空间交互原型——打开网页即刻免费使用，企业/个人还可一键获取可断网永久运行的 Pro 离线工具包。</p>
+    <p data-i18n="hero_desc">数电发票 XML/OFD 解析查重、AI 上下文省钱体检 CLI、商业报价单 A4 PDF、电商主图批压缩与利润核算、Markdown 转 Anki 卡片——打开即用，严禁隐私数据上传云端。</p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="#tools" data-i18n="hero_cta1">立即免费使用 5 款工具</a>
-      <a class="btn btn-pro" href="#pro" data-i18n="hero_cta2">获取 Pro 离线全家桶 (自动发货)</a>
-      <a class="btn" href="https://github.com/qingzhou1204/local-privacy-toolkit" target="_blank" rel="noopener" data-i18n="hero_cta3">查看开源仓库 ★ Star</a>
+      <a class="btn btn-primary" href="./tools/fapiao-kit/" data-i18n="hero_cta1">🔥 免费试用数电发票神器 (5张)</a>
+      <a class="btn btn-pro" href="#pro" data-i18n="hero_cta2">获取 Pro 离线买断包 (自动发货)</a>
+      <a class="btn" href="https://github.com/qingzhou1204/context-diet" target="_blank" rel="noopener" data-i18n="hero_cta3">🥗 context-diet 省Token CLI ★</a>
     </div>
   </section>
 
   <div class="section-head" id="tools">
     <div>
-      <h2 data-i18n="sec_tools_t">5 款零安装在线工具（免费直接使用）</h2>
-      <div class="muted" data-i18n="sec_tools_d">全部文件仅在你自己的浏览器内存中解析，断网亦可独立运行。</div>
+      <h2 data-i18n="sec_tools_t">6 款零安装在线工具 & 开源开发利器</h2>
+      <div class="muted" data-i18n="sec_tools_d">全部文件仅在你自己的浏览器/本地内存解析，断网亦可独立运行。</div>
     </div>
   </div>
 
   <section class="grid-tools">
+    <article class="card" style="border-color:rgba(251,191,36,.6)">
+      <div>
+        <div class="tag-row"><span class="tag" style="color:var(--amber)">🔥 S级刚需</span><span class="tag">XML / OFD</span></div>
+        <h3 style="margin-top:10px" data-i18n="t0_t">FapiaoKit · 数电发票全离线解析查重台</h3>
+        <p class="muted" data-i18n="t0_d">直接读取数电 XML 与真 OFD 内嵌结构，20位发票号防科学计数法，跨格式拦截员工重复报销。网页免费试 5 张，Pro 版支持 500 张 + 真 .xlsx + 批量重命名。</p>
+      </div>
+      <a class="btn btn-pro" href="./tools/fapiao-kit/" data-i18n="open_tool">立即免费试 5 张 →</a>
+    </article>
+
+    <article class="card" style="border-color:rgba(52,211,153,.55)">
+      <div>
+        <div class="tag-row"><span class="tag" style="color:var(--emerald)">🥗 GitHub 旗舰</span><span class="tag">CLI + Action</span></div>
+        <h3 style="margin-top:10px" data-i18n="t6_t">context-diet · AI 上下文黑洞与膨胀审计</h3>
+        <p class="muted" data-i18n="t6_d">面向 Claude Code / Cursor / Codex 开发者：1 秒定位烧额度黑洞文件，生成 .cursorignore/.claudeignore，并在 GitHub PR 中拦截 AI 废话注释与重复代码。</p>
+      </div>
+      <a class="btn btn-primary" href="https://github.com/qingzhou1204/context-diet" target="_blank" rel="noopener">前往 GitHub 获取 CLI →</a>
+    </article>
     <article class="card">
       <div>
         <div class="tag-row"><span class="tag">Finance / CSV</span><span class="tag">UTF-8 & GBK</span></div>
@@ -256,6 +273,8 @@ const I18N = {
     hero_cta1: "立即免费使用 5 款工具", hero_cta2: "获取 Pro 离线全家桶 (自动发货)", hero_cta3: "查看开源仓库 ★ Star",
     sec_tools_t: "5 款零安装在线工具（免费直接使用）", sec_tools_d: "全部文件仅在你自己的浏览器内存中解析，断网亦可独立运行。",
     open_tool: "立即打开工具 →",
+    t0_t: "FapiaoKit · 数电发票全离线解析查重台", t0_d: "直接读取数电 XML 与真 OFD 内嵌结构，20位发票号防科学计数法，跨格式拦截员工重复报销。网页免费试 5 张，Pro 版支持 500 张 + 真 .xlsx + 批量重命名。",
+    t6_t: "context-diet · AI 上下文黑洞与膨胀审计", t6_d: "面向 Claude Code / Cursor / Codex 开发者：1 秒定位烧额度黑洞文件，生成 .cursorignore/.claudeignore，并在 GitHub PR 中拦截 AI 废话注释与重复代码。",
     t1_t: "多表报销 / 发票 CSV 合并查重台", t1_d: "拖入多部门 CSV 报销表，自动兼容 UTF-8/GBK 编码、清洗货币符号、跨文件拦截重复发票号与负金额异常，导出 Excel 不乱码总表。",
     t2_t: "离线商业报价单 / 形式发票生成器", t2_d: "动态增删商品行、自动算折扣/税率/运费、支持 CNY/USD 双币汇率切换与人民币大写，内置标准 A4 排版一键导出 PDF。",
     t3_t: "电商主图 800×800 批压缩 & SKU 利润核算", t3_d: "浏览器 Canvas 本地将商品图白底居中压至 800×800 并一键打成 ZIP 下载；同时支持多平台订单 CSV 核算净利润并预警亏损 SKU。",
@@ -278,6 +297,8 @@ const I18N = {
     hero_cta1: "Try All 5 Tools Free", hero_cta2: "Get Pro Offline Bundle", hero_cta3: "View on GitHub ★ Star",
     sec_tools_t: "5 Zero-Install Browser Utilities (Free Forever)", sec_tools_d: "Every file is processed strictly inside your local browser memory—works offline too.",
     open_tool: "Launch Tool →",
+    t0_t: "FapiaoKit · E-Invoice XML/OFD Local Parser", t0_d: "Parse China Digital E-Invoices (XML & real OFD) offline with zero cloud upload, prevent Excel 20-digit corruption, and catch cross-format duplicates (5-free trial / Pro ¥49).",
+    t6_t: "context-diet · AI Context & Bloat Auditor", t6_d: "Zero-dependency CLI & GitHub Action for Claude Code / Cursor / Codex: pinpoint token black holes, generate ignore files, and gate bloated AI PRs.",
     t1_t: "Multi-CSV Invoice Merger & Deduplicator", t1_d: "Drop multiple department CSVs with auto UTF-8/GBK detection, clean currency symbols, flag duplicate invoice IDs and negative anomalies, and export Excel-ready CSV.",
     t2_t: "Offline Commercial Quote / Proforma PDF", t2_d: "Dynamic line items, discount/tax/shipping calculation, dual CNY/USD conversion, localStorage auto-save, and clean A4 PDF print layout.",
     t3_t: "E-Commerce 800×800 Image + SKU Profit Kit", t3_d: "Batch resize product images onto white 800×800 squares with native zero-dependency ZIP download, plus multi-channel SKU net margin & loss alerts.",

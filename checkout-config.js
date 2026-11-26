@@ -11,6 +11,8 @@ window.QZ_CHECKOUT = {
   "lemonsqueezy_url": "",
   "custom_issue_url": "https://github.com/qingzhou1204/local-privacy-toolkit/issues/new?title=%5BCustom%20Tool%20Request%5D+",
   "free_release_url": "https://github.com/qingzhou1204/local-privacy-toolkit/releases/latest",
+  "fapiao_pro_price_cny": "¥49",
+  "fapiao_pro_price_usd": "$14.9",
   "pro_price_cny": "¥29.9",
   "pro_price_usd": "$9.9",
   "biz_price_cny": "¥199",

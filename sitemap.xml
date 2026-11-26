@@ -5,6 +5,10 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://qingzhou1204.github.io/tools/fapiao-kit/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
     <loc>https://qingzhou1204.github.io/tools/csv-invoice-merger/</loc>
     <priority>0.9</priority>
   </url>

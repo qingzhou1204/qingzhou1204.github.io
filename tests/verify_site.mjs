@@ -65,7 +65,7 @@ assert.ok(cfgCtx.window.QZ_CHECKOUT && cfgCtx.window.QZ_CHECKOUT.pro_price_cny, 
 // 2. Validate sitemap & robots
 const sitemap = fs.readFileSync(path.join(siteRoot, "sitemap.xml"), "utf-8");
 const locs = [...sitemap.matchAll(/<loc>https:\/\/qingzhou1204\.github\.io(\/[^<]*)<\/loc>/g)].map(m => m[1]);
-assert.equal(locs.length, 6, "Expected 6 URLs in sitemap.xml");
+assert.equal(locs.length, 7, "Expected 7 URLs in sitemap.xml");
 for (const u of locs) {
   const rel = u === "/" ? "index.html" : path.join(u.slice(1), "index.html");
   assert.ok(fs.existsSync(path.join(siteRoot, rel)), `Sitemap target missing: ${rel}`);
@@ -75,6 +75,22 @@ for (const u of locs) {
 runHtmlInVm("index.html");
 runHtmlInVm("tools/quote-generator/index.html");
 runHtmlInVm("tools/agent-ui-lab/index.html");
+
+// 3b. Functional logic tests: FapiaoKit 5-limit + cross-format dedup
+const { ctx: fpCtx } = runHtmlInVm("tools/fapiao-kit/index.html");
+const fpSample = [
+  fpCtx.parseXmlInvoiceText("<EInvoice><EIid>26442000000188293041</EIid><IssueTime>2026-11-08</IssueTime><SellerName>阿里云</SellerName><TotalTax-includedAmount>1590.00</TotalTax-includedAmount></EInvoice>", "a.xml", "XML"),
+  fpCtx.parseXmlInvoiceText("<EInvoice><EIid>26442000000188293041</EIid><IssueTime>2026-11-08</IssueTime><SellerName>阿里云</SellerName><TotalTax-includedAmount>1590.00</TotalTax-includedAmount></EInvoice>", "b.ofd", "OFD"),
+  fpCtx.parseXmlInvoiceText("<EInvoice><EIid>26442000000188293042</EIid><IssueTime>2026-11-12</IssueTime><SellerName>顺丰</SellerName><TotalTax-includedAmount>424.00</TotalTax-includedAmount></EInvoice>", "c.xml", "XML"),
+  fpCtx.parseXmlInvoiceText("<EInvoice><EIid>26442000000188293043</EIid><IssueTime>2026-11-15</IssueTime><SellerName>腾讯</SellerName><TotalTax-includedAmount>2120.00</TotalTax-includedAmount></EInvoice>", "d.ofd", "OFD"),
+  fpCtx.parseXmlInvoiceText("<EInvoice><EIid>26442000000188293044</EIid><IssueTime>2026-11-16</IssueTime><SellerName>京东</SellerName><TotalTax-includedAmount>300.00</TotalTax-includedAmount></EInvoice>", "e.xml", "XML"),
+  fpCtx.parseXmlInvoiceText("<EInvoice><EIid>26442000000188293045</EIid><IssueTime>2026-11-17</IssueTime><SellerName>超限</SellerName><TotalTax-includedAmount>100.00</TotalTax-includedAmount></EInvoice>", "f.xml", "XML")
+];
+const fpRes = fpCtx.runTrialBatch(fpSample, 5);
+assert.equal(fpRes.processed, 5);
+assert.equal(fpRes.skippedByLimit, 1);
+assert.equal(fpRes.anomalies.length, 1);
+assert.equal(fpRes.valid.length, 4);
 
 // 4. Functional logic tests: CSV Merger
 const { ctx: csvCtx } = runHtmlInVm("tools/csv-invoice-merger/index.html");

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FapiaoKit · 数电发票 XML / OFD 全离线解析查重台（免费试用版）</title>
+  <script src="../../checkout-config.js"></script>
+  <style>
+    :root { --bg:#080d1a; --panel:#11192e; --card:#17223d; --border:#27365c; --text:#e8eefc; --muted:#94a3c7; --cyan:#38bdf8; --ok:#34d399; --bad:#f87171; --amber:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:14px 22px; background:#0c1324; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .btn { border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:8px; padding:8px 13px; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary { background:linear-gradient(135deg,#0284c7,#38bdf8); color:#041423; border:0; }
+    .btn-pro { background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#1a1002; border:0; }
+    .wrap { max-width:1240px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+    .banner { background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.42); border-radius:12px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:13px; }
+    .drop { border:2px dashed var(--border); border-radius:14px; padding:24px; text-align:center; background:var(--panel); cursor:pointer; }
+    .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .kpi { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .kpi .v { font-size:24px; font-weight:800; color:var(--cyan); }
+    .kpi .k { font-size:12px; color:var(--muted); }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-size:12px; }
+    .badge { padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+    .b-ok { background:rgba(52,211,153,.16); color:var(--ok); }
+    .b-bad { background:rgba(248,113,113,.16); color:var(--bad); }
+    .modal-bg { position:fixed; inset:0; background:rgba(3,6,14,.8); display:none; align-items:center; justify-content:center; padding:18px; z-index:60; }
+    .modal-bg.open { display:flex; }
+    .modal { max-width:520px; width:100%; background:var(--panel); border:1px solid var(--amber); border-radius:16px; padding:22px; }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <strong style="font-size:16px">FapiaoKit · 数电发票全离线解析查重台（体验版）</strong>
+    <span style="font-size:12px;color:var(--muted);margin-left:10px">100% 浏览器本地内存处理 · 严禁发票上传云端 · 专治 20 位发票号科学计数法</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="loadMixedDemo()">🧪 加载 6 份混合样例（测试跨格式重复与 5 张限额）</button>
+    <a class="btn" href="../../">← 返回工具箱官网</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="banner">
+    <div>🔒 <b>免费体验版限制</b>：每次最多免费解析 <b>前 5 张</b> 发票（验证 100% 离线精准解析与跨格式查重）。单次 <b>500 张批处理 + 真多 Sheet .xlsx + 原文件批量重命名归档 ZIP</b> 请解锁 Pro 离线买断版。</div>
+    <button class="btn btn-pro" onclick="openProModal('header')">💎 获取 Pro 离线买断版 (¥49)</button>
+  </div>
+
+  <div class="drop" onclick="document.getElementById('fin').click()">
+    <div style="font-size:15px;font-weight:700">📂 拖入或选择数电发票 .xml / .ofd（体验版限前 5 张，第 6 张起触发 Pro 提示）</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">支持国家税务总局标准 &lt;EInvoice&gt; XML 及真 ZIP 容器结构的 OFD 电子发票</div>
+    <input id="fin" type="file" accept=".xml,.ofd" multiple style="display:none" />
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="k-input">0</div><div class="k">本次处理 / 传入总数</div></div>
+    <div class="kpi"><div class="v" id="k-valid" style="color:var(--ok)">0</div><div class="k">合规入账发票</div></div>
+    <div class="kpi"><div class="v" id="k-amt">¥0.00</div><div class="k">价税合计总额</div></div>
+    <div class="kpi"><div class="v" id="k-bad" style="color:var(--bad)">0</div><div class="k">跨格式重复/异常拦截</div></div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="exportPreviewCsv()">⬇ 导出前 5 张预览台账 (.csv · 20位号防科学计数法)</button>
+    <button class="btn btn-pro" onclick="openProModal('xlsx')">🔒 导出 3-Sheet 真 .xlsx（Pro 离线版功能）</button>
+    <button class="btn btn-pro" onclick="openProModal('rename')">🔒 原文件批量规范重命名归档 ZIP（Pro 离线版功能）</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 8px;font-size:15px;color:var(--bad)">跨格式查重与异常拦截</h3>
+    <table><thead><tr><th>原文件</th><th>格式</th><th>发票号码(20位文本)</th><th>销方</th><th>价税合计</th><th>拦截原因</th></tr></thead><tbody id="bad-tb"></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 8px;font-size:15px">合规发票明细（20位发票号已加文本引号防变形）</h3>
+    <table><thead><tr><th>发票号码</th><th>格式</th><th>开票日期</th><th>销方名称</th><th>不含税</th><th>税额</th><th>价税合计</th><th>原文件</th></tr></thead><tbody id="ok-tb"></tbody></table>
+  </div>
+</div>
+
+<div class="modal-bg" id="pro-modal" onclick="if(event.target===this)closeProModal()">
+  <div class="modal">
+    <h3 style="margin:0 0 8px;color:var(--amber)" id="pro-title">🔒 已触发 Pro 离线买断版功能</h3>
+    <p style="font-size:13px;color:#cbd5e1;line-height:1.6" id="pro-desc"></p>
+    <ul style="font-size:13px;color:#dbeafe;padding-left:18px;line-height:1.7">
+      <li>✅ 单次支持 <b>500+ 张</b> XML / OFD / 文本型 PDF 混排批量解析（3秒出表）</li>
+      <li>✅ 导出 <b>3-Sheet 真 .xlsx</b>（总表 + 商品明细 + 异常表，20位发票号强制文本格式）</li>
+      <li>✅ 一键按 <code>日期_销方_金额_号后6位</code> 批量重命名合规发票并打包归档</li>
+      <li>✅ 纯 Windows 免安装离线包，公司内网/无网电脑永久使用</li>
+    </ul>
+    <div id="pro-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
+    <button class="btn" style="width:100%;margin-top:10px;justify-content:center" onclick="closeProModal()">继续试用免费 5 张体验版</button>
+  </div>
+</div>
+
+<script>
+const FREE_LIMIT = 5;
+let LAST_RESULT = { totalInput: 0, processed: 0, skippedByLimit: 0, valid: [], anomalies: [] };
+
+function xmlTag(text, tags) {
+  for (const t of tags) {
+    const re = new RegExp(`<([a-zA-Z0-9_-]+:)?${t}[^>]*>([\\s\\S]*?)<\\/([a-zA-Z0-9_-]+:)?${t}>`, "i");
+    const m = text.match(re);
+    if (m && m[2].trim()) return m[2].trim();
+  }
+  return "";
+}
+
+function parseXmlInvoiceText(xmlText, fileName, fmt = "XML") {
+  const invNo = xmlTag(xmlText, ["EIid", "InvoiceNumber", "Fphm", "InvoiceNo"]);
+  const rawDate = xmlTag(xmlText, ["IssueTime", "RequestTime", "Kprq", "IssueDate"]);
+  const dm = rawDate.match(/(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})/);
+  const issueDate = dm ? `${dm[1]}-${dm[2].padStart(2,"0")}-${dm[3].padStart(2,"0")}` : rawDate.slice(0, 10);
+  const seller = xmlTag(xmlText, ["SellerName", "XsfMc"]);
+  const ex = parseFloat(xmlTag(xmlText, ["TotalAmWithoutTax", "Hjje"]) || "0") || 0;
+  const tax = parseFloat(xmlTag(xmlText, ["TotalTaxAm", "Hjse"]) || "0") || 0;
+  let inc = parseFloat(xmlTag(xmlText, ["TotalTax-includedAmount", "Jshj", "TotalAmount"]) || "0") || 0;
+  if (!inc && (ex || tax)) inc = Number((ex + tax).toFixed(2));
+  return { sourceFile: fileName, format: fmt, invoiceNo: invNo, issueDate, seller, exTax: ex, tax, incTax: inc };
+}
+
+async function parseOfdBytes(u8, fileName) {
+  // Lightweight ZIP central/local header reader (supports STORE=0 & DEFLATE=8 via DecompressionStream)
+  const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let pos = 0;
+  const dec = new TextDecoder("utf-8", { fatal: false });
+  const xmlFiles = [];
+
+  while (pos + 30 <= u8.length) {
+    if (view.getUint32(pos, true) !== 0x04034b50) break;
+    const method = view.getUint16(pos + 8, true);
+    const compSize = view.getUint32(pos + 18, true);
+    const nameLen = view.getUint16(pos + 26, true);
+    const extraLen = view.getUint16(pos + 28, true);
+    const name = dec.decode(u8.subarray(pos + 30, pos + 30 + nameLen));
+    const dataStart = pos + 30 + nameLen + extraLen;
+    const rawSlice = u8.subarray(dataStart, dataStart + compSize);
+    pos = dataStart + compSize;
+
+    if (name.toLowerCase().endsWith(".xml")) {
+      let bytes = rawSlice;
+      if (method === 8 && typeof DecompressionStream !== "undefined") {
+        const ds = new DecompressionStream("deflate-raw");
+        const writer = ds.writable.getWriter();
+        writer.write(rawSlice);
+        writer.close();
+        bytes = new Uint8Array(await new Response(ds.readable).arrayBuffer());
+      }
+      xmlFiles.push({ name, text: dec.decode(bytes) });
+    }
+  }
+  const primary = xmlFiles.find(x => /original_invoice|einvoice|invoice/i.test(x.name));
+  if (primary) {
+    const p = parseXmlInvoiceText(primary.text, fileName, "OFD");
+    if (p.invoiceNo) return p;
+  }
+  return { sourceFile: fileName, format: "OFD", invoiceNo: "", issueDate: "", seller: "", exTax: 0, tax: 0, incTax: 0 };
+}
+
+function runTrialBatch(parsedList, limit = FREE_LIMIT) {
+  const totalInput = parsedList.length;
+  const sliced = parsedList.slice(0, limit);
+  const skippedByLimit = Math.max(0, totalInput - sliced.length);
+  const seen = new Map();
+  const valid = [];
+  const anomalies = [];
+
+  for (const inv of sliced) {
+    const reasons = [];
+    if (!inv.invoiceNo) reasons.push("缺失发票号");
+    else if (seen.has(inv.invoiceNo)) {
+      const prev = seen.get(inv.invoiceNo);
+      reasons.push(`跨格式重复报销（已见于 ${prev.sourceFile} [${prev.format}]）`);
+    } else {
+      seen.set(inv.invoiceNo, inv);
+    }
+    if (inv.incTax <= 0) reasons.push(`价税合计异常(¥${inv.incTax.toFixed(2)})`);
+    if (reasons.length) anomalies.push({ ...inv, reasons });
+    else valid.push(inv);
+  }
+  LAST_RESULT = { totalInput, processed: sliced.length, skippedByLimit, valid, anomalies };
+  render();
+  if (skippedByLimit > 0) openProModal("limit", skippedByLimit);
+  return LAST_RESULT;
+}
+
+function esc(s) { return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function render() {
+  const r = LAST_RESULT;
+  const totalAmt = r.valid.reduce((s, x) => s + x.incTax, 0);
+  document.getElementById("k-input").textContent = `${r.processed} / ${r.totalInput}`;
+  document.getElementById("k-valid").textContent = r.valid.length;
+  document.getElementById("k-amt").textContent = "¥" + totalAmt.toFixed(2);
+  document.getElementById("k-bad").textContent = r.anomalies.length;
+
+  document.getElementById("bad-tb").innerHTML = r.anomalies.map(a =>
+    `<tr><td>${esc(a.sourceFile)}</td><td>${esc(a.format)}</td><td><code>${esc(a.invoiceNo || "-")}</code></td><td>${esc(a.seller || "-")}</td><td>¥${a.incTax.toFixed(2)}</td><td><span class="badge b-bad">${esc(a.reasons.join("；"))}</span></td></tr>`
+  ).join("") || '<tr><td colspan="6" style="color:var(--muted)">无拦截异常</td></tr>';
+
+  document.getElementById("ok-tb").innerHTML = r.valid.map(v =>
+    `<tr><td><code>${esc(v.invoiceNo)}</code></td><td><span class="badge b-ok">${esc(v.format)}</span></td><td>${esc(v.issueDate)}</td><td>${esc(v.seller)}</td><td>¥${v.exTax.toFixed(2)}</td><td>¥${v.tax.toFixed(2)}</td><td><b>¥${v.incTax.toFixed(2)}</b></td><td>${esc(v.sourceFile)}</td></tr>`
+  ).join("");
+}
+
+function exportPreviewCsv() {
+  const rows = [
+    ["发票号码(防变形)", "格式", "开票日期", "销方名称", "不含税金额", "税额", "价税合计", "原文件名"],
+    ...LAST_RESULT.valid.map(v => [`\t${v.invoiceNo}`, v.format, v.issueDate, v.seller, v.exTax.toFixed(2), v.tax.toFixed(2), v.incTax.toFixed(2), v.sourceFile])
+  ];
+  const csv = "\uFEFF" + rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "FapiaoKit_前5张试用预览.csv";
+  a.click();
+}
+
+function openProModal(reason, skipped = 0) {
+  const cfg = window.QZ_CHECKOUT || {};
+  const titleMap = {
+    limit: `🔒 已精准解析前 5 张！剩余 ${skipped} 张需解锁 Pro 无限批处理版`,
+    xlsx: "🔒 导出 3-Sheet 真 .xlsx 台账为 Pro 离线版专属功能",
+    rename: "🔒 一键批量重命名原发票并归档 ZIP 为 Pro 离线版专属功能",
+    header: "💎 获取 FapiaoKit Pro 离线买断版（一次买断永久使用）"
+  };
+  document.getElementById("pro-title").textContent = titleMap[reason] || titleMap.header;
+  document.getElementById("pro-desc").textContent = `当前体验版已在本地为你验证 0 上传解析实力与跨格式查重能力。一次买断 ${cfg.fapiao_pro_price_cny || "¥49"}（或 ${cfg.fapiao_pro_price_usd || "$14.9"}），即刻下载 Windows 免安装离线 Pro 全套：`;
+  const cnUrl = cfg.afdian_url || cfg.xianyu_url;
+  const intlUrl = cfg.gumroad_url || cfg.lemonsqueezy_url;
+  document.getElementById("pro-actions").innerHTML = `
+    ${cnUrl ? `<a class="btn btn-pro" style="flex:1;justify-content:center" href="${cnUrl}" target="_blank" rel="noopener">🇨🇳 国内自动发货 (${cfg.fapiao_pro_price_cny || "¥49"})</a>` : `<a class="btn btn-pro" style="flex:1;justify-content:center" href="../../#pro">🇨🇳 前往官网获取 Pro 自动发货 (${cfg.fapiao_pro_price_cny || "¥49"})</a>`}
+    ${intlUrl ? `<a class="btn btn-primary" style="flex:1;justify-content:center" href="${intlUrl}" target="_blank" rel="noopener">🌍 Global (${cfg.fapiao_pro_price_usd || "$14.9"})</a>` : ""}
+  `;
+  document.getElementById("pro-modal").classList.add("open");
+}
+function closeProModal() { document.getElementById("pro-modal").classList.remove("open"); }
+
+document.getElementById("fin").addEventListener("change", async e => {
+  const out = [];
+  for (const f of e.target.files) {
+    const buf = new Uint8Array(await f.arrayBuffer());
+    if (f.name.toLowerCase().endsWith(".ofd")) out.push(await parseOfdBytes(buf, f.name));
+    else out.push(parseXmlInvoiceText(new TextDecoder("utf-8").decode(buf), f.name, "XML"));
+  }
+  runTrialBatch(out, FREE_LIMIT);
+});
+
+function loadMixedDemo() {
+  const demo = [
+    parseXmlInvoiceText("<EInvoice><EIid>26442000000188293041</EIid><IssueTime>2026-11-08</IssueTime><SellerName>阿里云计算有限公司</SellerName><TotalAmWithoutTax>1500.00</TotalAmWithoutTax><TotalTaxAm>90.00</TotalTaxAm><TotalTax-includedAmount>1590.00</TotalTax-includedAmount></EInvoice>", "01_阿里云计算.xml", "XML"),
+    parseXmlInvoiceText("<EInvoice><EIid>26442000000188293042</EIid><IssueTime>2026-11-12</IssueTime><SellerName>顺丰速运</SellerName><TotalAmWithoutTax>400.00</TotalAmWithoutTax><TotalTaxAm>24.00</TotalTaxAm><TotalTax-includedAmount>424.00</TotalTax-includedAmount></EInvoice>", "02_顺丰速运.xml", "XML"),
+    parseXmlInvoiceText("<EInvoice><EIid>26442000000188293043</EIid><IssueTime>2026-11-15</IssueTime><SellerName>腾讯计算机系统</SellerName><TotalAmWithoutTax>2000.00</TotalAmWithoutTax><TotalTaxAm>120.00</TotalTaxAm><TotalTax-includedAmount>2120.00</TotalTax-includedAmount></EInvoice>", "03_腾讯会议.ofd", "OFD"),
+    parseXmlInvoiceText("<EInvoice><EIid>26442000000188293041</EIid><IssueTime>2026-11-08</IssueTime><SellerName>阿里云计算有限公司</SellerName><TotalAmWithoutTax>1500.00</TotalAmWithoutTax><TotalTaxAm>90.00</TotalTaxAm><TotalTax-includedAmount>1590.00</TotalTax-includedAmount></EInvoice>", "04_阿里云_跨格式重复.ofd", "OFD"),
+    parseXmlInvoiceText("<EInvoice><EIid>26442000000188293046</EIid><IssueTime>2026-11-20</IssueTime><SellerName>晨光办公测试</SellerName><TotalAmWithoutTax>0.00</TotalAmWithoutTax><TotalTaxAm>0.00</TotalTaxAm><TotalTax-includedAmount>0.00</TotalTax-includedAmount></EInvoice>", "05_异常零额.xml", "XML"),
+    parseXmlInvoiceText("<EInvoice><EIid>26442000000188293047</EIid><IssueTime>2026-11-22</IssueTime><SellerName>第6张超限样例</SellerName><TotalAmWithoutTax>500.00</TotalAmWithoutTax><TotalTaxAm>30.00</TotalTaxAm><TotalTax-includedAmount>530.00</TotalTax-includedAmount></EInvoice>", "06_超出免费限额.xml", "XML")
+  ];
+  runTrialBatch(demo, FREE_LIMIT);
+}
+loadMixedDemo();
+</script>
+</body>
+</html>
