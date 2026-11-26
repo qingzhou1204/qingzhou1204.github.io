@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeckCraft — Editorial Anti-Slop Design Systems & Commercial Templates</title>
+<style>
+  @page { size: landscape; margin: 10mm; }
+  :root {
+    --ui-bg: #F6F5F1;
+    --ui-surface: #FFFFFF;
+    --ui-ink: #141413;
+    --ui-muted: #5E5D57;
+    --ui-rule: #DEDCD3;
+    --ui-accent: #D9381E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--ui-bg);
+    color: var(--ui-ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.55;
+    font-variant-numeric: tabular-nums;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+
+  .shell-nav {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(246, 245, 241, 0.94);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--ui-rule);
+  }
+  .nav-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+  .brand-mark {
+    width: 12px;
+    height: 12px;
+    background: var(--ui-accent);
+    display: inline-block;
+  }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: 1px solid var(--ui-rule);
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 3px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn:hover { border-color: var(--ui-ink); }
+  .btn-primary {
+    background: var(--ui-ink);
+    color: #fff;
+    border-color: var(--ui-ink);
+  }
+  .btn-primary:hover { background: var(--ui-accent); border-color: var(--ui-accent); }
+  .btn-accent {
+    background: var(--ui-accent);
+    color: #fff;
+    border-color: var(--ui-accent);
+  }
+
+  .container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 36px 24px 64px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.25fr 0.95fr;
+    gap: 28px;
+    align-items: end;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--ui-ink);
+    margin-bottom: 22px;
+  }
+  .kicker {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ui-accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 3.6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+  .hero p {
+    color: var(--ui-muted);
+    font-size: 15px;
+    max-width: 660px;
+  }
+  .install-box {
+    background: #141413;
+    color: #F4F4F0;
+    padding: 18px 20px;
+    border-radius: 3px;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12.5px;
+  }
+  .install-label {
+    color: #A3A299;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .install-cmd {
+    word-break: break-all;
+    color: #FFFFFF;
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    margin: 36px 0 16px;
+    flex-wrap: wrap;
+  }
+  .section-head h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .section-head .sub {
+    color: var(--ui-muted);
+    font-size: 13.5px;
+  }
+
+  /* Controls toolbar for 6 systems */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-rule);
+    padding: 12px 14px;
+    margin-bottom: 18px;
+  }
+  .system-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .sys-tab {
+    border: 1px solid var(--ui-rule);
+    background: transparent;
+    color: var(--ui-muted);
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 2px;
+  }
+  .sys-tab.active {
+    background: var(--ui-ink);
+    color: #FFFFFF;
+    border-color: var(--ui-ink);
+  }
+  .tool-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Live Preview Stage */
+  .stage-wrap {
+    border: 1px solid var(--ui-ink);
+    background: #E8E6DE;
+    padding: 18px;
+  }
+  .stage-card {
+    --pv-bg: #FAFAF8;
+    --pv-surface: #FFFFFF;
+    --pv-ink: #111111;
+    --pv-muted: #5A5A52;
+    --pv-accent: #D9381E;
+    --pv-rule: #DFDFD7;
+    --pv-font: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--pv-bg);
+    color: var(--pv-ink);
+    font-family: var(--pv-font);
+    padding: 26px 34px;
+    border: 1px solid var(--pv-rule);
+    min-height: 430px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .pv-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid var(--pv-ink);
+    padding-bottom: 12px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .pv-top .pv-accent { color: var(--pv-accent); }
+  .pv-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1.15fr;
+    gap: 28px;
+    align-items: stretch;
+  }
+  .pv-eyebrow {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 11px;
+    color: var(--pv-muted);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .pv-title {
+    font-size: clamp(24px, 2.8vw, 34px);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .pv-lead {
+    color: var(--pv-muted);
+    font-size: 14.5px;
+    margin-bottom: 18px;
+  }
+  .pv-kpis {
+    border-top: 1px solid var(--pv-ink);
+  }
+  .pv-kpi-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--pv-rule);
+    gap: 12px;
+  }
+  .pv-kpi-val {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .pv-chart-box {
+    background: var(--pv-surface);
+    border: 1px solid var(--pv-rule);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .pv-chart-title {
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+  }
+  .pv-bullets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    border-top: 1px solid var(--pv-rule);
+    padding-top: 14px;
+    font-size: 12.5px;
+  }
+  .pv-bullets strong { display: block; margin-bottom: 4px; color: var(--pv-accent); font-family: ui-monospace, monospace; }
+  .pv-foot {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--pv-rule);
+    padding-top: 10px;
+    font-size: 11.5px;
+    color: var(--pv-muted);
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  [contenteditable="true"] {
+    outline: 1px dashed var(--pv-accent);
+    outline-offset: 3px;
+  }
+
+  /* Slop Before vs After Switcher */
+  .ba-panel {
+    border: 1px solid var(--ui-rule);
+    background: var(--ui-surface);
+    padding: 20px;
+  }
+  .ba-mode-slop {
+    background: radial-gradient(circle at 20% 20%, #3b1d7a 0%, #0f172a 55%, #07192d 100%);
+    color: #f8fafc;
+    padding: 28px;
+    border-radius: 18px;
+    text-align: center;
+  }
+  .ba-slop-h {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #a78bfa, #38bdf8, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 10px 0;
+  }
+  .ba-slop-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .ba-slop-card {
+    background: rgba(30,41,59,0.62);
+    border: 1px solid rgba(139,92,246,0.5);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 0 24px rgba(56,189,248,0.22);
+    font-size: 13px;
+  }
+  .ba-mode-after {
+    background: #FAFAF8;
+    color: #111111;
+    padding: 28px;
+    border: 1px solid #DFDFD7;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 24px;
+  }
+
+  /* Pro Comparison Table */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 16px;
+  }
+  .tier-card {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-rule);
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .tier-card.pro {
+    border: 2px solid var(--ui-ink);
+  }
+  .tier-price {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .tier-list {
+    list-style: none;
+    font-size: 13.5px;
+  }
+  .tier-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--ui-rule);
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,19,0.62);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--ui-surface);
+    border: 2px solid var(--ui-ink);
+    max-width: 520px;
+    width: 100%;
+    padding: 28px;
+  }
+  .modal h3 { font-size: 20px; margin-bottom: 10px; }
+  .modal p { font-size: 13.5px; color: var(--ui-muted); margin-bottom: 16px; }
+  .modal-links { display: grid; gap: 10px; margin-bottom: 16px; }
+
+  @media (max-width: 900px) {
+    .hero, .pv-grid, .compare-grid, .ba-mode-after, .ba-slop-cards, .pv-bullets {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media print {
+    .shell-nav, .hero, .section-head, .toolbar, .ba-section, .pro-section, .modal-backdrop { display: none !important; }
+    body { background: #fff; }
+    .container { padding: 0; max-width: none; }
+    .stage-wrap { border: none; padding: 0; background: transparent; }
+    .stage-card { min-height: 92vh; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="shell-nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span>DeckCraft</span>
+      <span style="font-weight:400; color:var(--ui-muted); font-size:12.5px;" data-i18n="navTag">Editorial Anti-Slop Skill</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn" id="btnLang" onclick="toggleLang()">EN / 中文</button>
+      <a class="btn" href="../../" data-i18n="navBack">← LocalTools</a>
+      <a class="btn" href="https://github.com/qingzhou1204/deckcraft" target="_blank" rel="noopener">GitHub Repo</a>
+      <button class="btn btn-accent" onclick="openCheckout()" data-i18n="navPro">Pro 12 Templates (¥29.9 / $9.9)</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container">
+  <section class="hero">
+    <div>
+      <div class="kicker" data-i18n="heroKicker">OPEN-SOURCE AGENT SKILL · ZERO CDN · PRINT-READY @PAGE</div>
+      <h1 data-i18n="heroTitle">Stop letting AI generate purple-neon slide slop.</h1>
+      <p data-i18n="heroDesc">DeckCraft ships 6 editorial design systems (Swiss, FT Salmon, Linear, Blueprint, Warm Linen, Obsidian) as a drop-in Agent Skill. Zero Google Fonts, zero emoji bullets, real tabular-nums and crisp inline SVG charts.</p>
+    </div>
+    <div class="install-box">
+      <div class="install-label">
+        <span data-i18n="installLbl">ONE-LINE CLAUDE / AGENT INSTALL</span>
+        <button onclick="copyInstall()" style="background:none;border:none;color:#D9381E;font-weight:700;font-size:11px;" id="copyInstallBtn">COPY</button>
+      </div>
+      <div class="install-cmd" id="installCmd">claude plugin marketplace add qingzhou1204/deckcraft && claude plugin install deckcraft@qingzhou1204</div>
+    </div>
+  </section>
+
+  <!-- 6 Design Systems Interactive Gallery -->
+  <section>
+    <div class="section-head">
+      <h2 data-i18n="galTitle">Live 6 Editorial Systems — Try, Edit &amp; Print to PDF</h2>
+      <span class="sub" data-i18n="galSub">Switch system tokens, enable inline editing, copy CSS variables, or print straight to PDF.</span>
+    </div>
+
+    <div class="toolbar">
+      <div class="system-tabs" id="systemTabs"></div>
+      <div class="tool-btns">
+        <button class="btn" id="btnEditMode" onclick="toggleEditMode()" data-i18n="btnEdit">Enable Inline Edit</button>
+        <button class="btn" id="btnCopyTokens" onclick="copyTokens()" data-i18n="btnTokens">Copy CSS Tokens</button>
+        <button class="btn btn-primary" onclick="window.print()" data-i18n="btnPrint">Print / Save PDF</button>
+      </div>
+    </div>
+
+    <div class="stage-wrap">
+      <article class="stage-card" id="stageCard">
+        <div class="pv-top">
+          <div><span class="pv-accent" id="pvBadge">01 · SWISS EDITORIAL</span> &nbsp;/&nbsp; <span class="editable-node" data-i18n="pvDocType">SERIES A BOARD UPDATE</span></div>
+          <div id="pvPaletteCode">#FAFAF8 · #111111 · #D9381E</div>
+        </div>
+
+        <div class="pv-grid">
+          <div>
+            <div class="pv-eyebrow editable-node" id="pvEyebrow">EXHIBIT A — UNIT ECONOMICS</div>
+            <h3 class="pv-title editable-node" id="pvTitle" data-i18n="pvTitle">ARR quadrupled to $4.8M while CAC payback dropped to 6.4 months.</h3>
+            <p class="pv-lead editable-node" id="pvLead" data-i18n="pvLead">Designed for board reviews, high-ticket B2B proposals, and crisp A4/16:9 PDF export without external font breakage.</p>
+            <div class="pv-kpis">
+              <div class="pv-kpi-row">
+                <span class="editable-node" data-i18n="kpi1">Annual Recurring Revenue</span>
+                <span class="pv-kpi-val editable-node" style="color:var(--pv-accent)">$4.8M</span>
+              </div>
+              <div class="pv-kpi-row">
+                <span class="editable-node" data-i18n="kpi2">Net Dollar Retention</span>
+                <span class="pv-kpi-val editable-node">134%</span>
+              </div>
+              <div class="pv-kpi-row" style="border-bottom:none;">
+                <span class="editable-node" data-i18n="kpi3">Enterprise Revenue Share</span>
+                <span class="pv-kpi-val editable-node">68%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pv-chart-box">
+            <div class="pv-chart-title">
+              <span class="editable-node" data-i18n="chartTitle">Quarterly ARR Trajectory ($M)</span>
+              <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--pv-muted);" id="pvFontMeta">Sans Editorial</span>
+            </div>
+            <svg id="pvSvg" viewBox="0 0 520 210" width="100%" height="210" aria-label="Revenue Trajectory Chart"></svg>
+            <div class="pv-bullets">
+              <div><strong>01 / EXPANSION</strong><span class="editable-node" data-i18n="b1">3.1x seat growth inside 9 months</span></div>
+              <div><strong>02 / MARGIN</strong><span class="editable-node" data-i18n="b2">81% gross margin post-infra tuning</span></div>
+              <div><strong>03 / PIPELINE</strong><span class="editable-node" data-i18n="b3">74% organic engineering referrals</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-foot">
+          <span id="pvMoodFoot">SWISS EDITORIAL · ZERO EXTERNAL CDN · TABULAR-NUMS</span>
+          <span>@PAGE PRINT-READY</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Before vs After Switcher -->
+  <section class="ba-section">
+    <div class="section-head">
+      <h2 data-i18n="baTitle">Before vs. After: Same Data, Zero AI Slop</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" id="btnShowBefore" onclick="setBaMode('before')" data-i18n="btnBefore">Show Typical AI Slop</button>
+        <button class="btn btn-primary" id="btnShowAfter" onclick="setBaMode('after')" data-i18n="btnAfter">Show DeckCraft Editorial</button>
+      </div>
+    </div>
+    <div class="ba-panel" id="baPanel"></div>
+  </section>
+
+  <!-- Open-Source vs Pro 12 Pack -->
+  <section class="pro-section">
+    <div class="section-head">
+      <h2 data-i18n="proTitle">Open-Source Skill vs. DeckCraft Pro Commercial Bundle</h2>
+      <span class="sub" data-i18n="proSub">Core Skill &amp; 6 single-page prototypes stay MIT open source forever. Upgrade when you need ready-to-deliver client packs.</span>
+    </div>
+    <div class="compare-grid">
+      <div class="tier-card">
+        <div>
+          <div class="kicker">OPEN SOURCE · MIT LICENSE</div>
+          <h3 style="font-size:22px;margin-bottom:6px;">DeckCraft Core Skill</h3>
+          <div class="tier-price">$0 / ¥0</div>
+          <ul class="tier-list" style="margin-top:14px;">
+            <li data-i18n="free1">✓ Complete SKILL.md + 15-rule Anti-Slop Checklist</li>
+            <li data-i18n="free2">✓ One-line .claude-plugin marketplace install</li>
+            <li data-i18n="free3">✓ 6 Design Systems Token Specs &amp; Single-Page Gallery</li>
+            <li data-i18n="free4">✓ Before / After reference HTML examples</li>
+          </ul>
+        </div>
+        <a class="btn" href="https://github.com/qingzhou1204/deckcraft" target="_blank" rel="noopener" style="text-align:center;" data-i18n="freeBtn">Star &amp; Clone on GitHub →</a>
+      </div>
+
+      <div class="tier-card pro">
+        <div>
+          <div class="kicker">COMMERCIAL BUNDLE · INSTANT ZIP</div>
+          <h3 style="font-size:22px;margin-bottom:6px;">DeckCraft Pro v1.0 (12 Full Multi-Page Templates)</h3>
+          <div class="tier-price" id="proPriceDisplay">¥29.9 / $9.9</div>
+          <ul class="tier-list" style="margin-top:14px;">
+            <li data-i18n="pro1">✓ 12 complete multi-slide / multi-page HTML templates (10-slide Series A Pitch Deck, B2B SOW Proposal, QBR Dashboard, Executive Resume, Product Launch, Brand Book, XHS 3:4 Editorial Carousel...)</li>
+            <li data-i18n="pro2">✓ Zero-CDN offline Pro Gallery + Windows 1-click .bat launcher</li>
+            <li data-i18n="pro3">✓ Pro SVG Chart &amp; A4 Print Pagination Reference Guide</li>
+            <li data-i18n="pro4">✓ Lifetime commercial client-delivery license</li>
+          </ul>
+        </div>
+        <button class="btn btn-accent" onclick="openCheckout()" data-i18n="proBtn">Get DeckCraft Pro Bundle →</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="checkoutModal" onclick="if(event.target===this)closeCheckout()">
+  <div class="modal">
+    <div class="kicker">DECKCRAFT PRO V1.0</div>
+    <h3 data-i18n="modTitle">Get DeckCraft Pro (12 Commercial Templates)</h3>
+    <p data-i18n="modDesc">Includes 12 complete multi-slide / A4 print templates, offline Pro gallery, SVG chart patterns, and commercial license.</p>
+    <div class="modal-links" id="modalLinks"></div>
+    <button class="btn" onclick="closeCheckout()" style="width:100%;" data-i18n="modClose">Close</button>
+  </div>
+</div>
+
+<script src="../../checkout-config.js"></script>
+<script>
+const SYSTEMS = [
+  {
+    id: "swiss",
+    label: "01 Swiss Editorial",
+    labelZh: "01 瑞士编辑风",
+    bg: "#FAFAF8",
+    surface: "#FFFFFF",
+    ink: "#111111",
+    muted: "#5A5A52",
+    accent: "#D9381E",
+    barMuted: "#B8B8AF",
+    rule: "#DFDFD7",
+    font: '"Helvetica Neue", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    fontMeta: "System Geometric Sans",
+    mood: "SWISS EDITORIAL · WARM PAPER · VERMILION ACCENT"
+  },
+  {
+    id: "ft",
+    label: "02 FT Editorial",
+    labelZh: "02 金融时报风",
+    bg: "#FFF1E5",
+    surface: "#FFF8F2",
+    ink: "#1A1816",
+    muted: "#665E57",
+    accent: "#990F3D",
+    barMuted: "#0F5499",
+    rule: "#E4CFC0",
+    font: 'Georgia, "Noto Serif SC", "Songti SC", serif',
+    fontMeta: "Editorial Broadsheet Serif",
+    mood: "FT BROADSHEET · SALMON PAPER · CLARET & OXFORD"
+  },
+  {
+    id: "linear",
+    label: "03 Linear Monochrome",
+    labelZh: "03 极简暗黑工程",
+    bg: "#0B0B0D",
+    surface: "#131317",
+    ink: "#F4F4F6",
+    muted: "#8E8E98",
+    accent: "#E2E8F0",
+    barMuted: "#3F3F46",
+    rule: "#24242B",
+    font: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif',
+    fontMeta: "Monochrome Carbon + Mono",
+    mood: "LINEAR MONOCHROME · HAIRLINE 1PX · ZERO NEON GLOW"
+  },
+  {
+    id: "blueprint",
+    label: "04 Blueprint",
+    labelZh: "04 建筑蓝图规范",
+    bg: "#F2F5F8",
+    surface: "#FFFFFF",
+    ink: "#0F172A",
+    muted: "#475569",
+    accent: "#1D4ED8",
+    barMuted: "#94A3B8",
+    rule: "#CBD5E1",
+    font: '"Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    fontMeta: "Technical Spec Sans + Mono",
+    mood: "ARCHITECTURAL BLUEPRINT · COBALT · PRECISION GRID"
+  },
+  {
+    id: "linen",
+    label: "05 Warm Linen",
+    labelZh: "05 温润亚麻品牌",
+    bg: "#F5EFE6",
+    surface: "#FBF8F3",
+    ink: "#1F2421",
+    muted: "#646158",
+    accent: "#1B4332",
+    barMuted: "#B08D57",
+    rule: "#DED4C3",
+    font: 'Georgia, "Noto Serif SC", "Songti SC", serif',
+    fontMeta: "Stationery Serif + Forest",
+    mood: "WARM CRAFT LINEN · DEEP FOREST · ANTIQUE BRASS"
+  },
+  {
+    id: "obsidian",
+    label: "06 Obsidian Keynote",
+    labelZh: "06 黑曜石发布会",
+    bg: "#0D0E12",
+    surface: "#15171E",
+    ink: "#F5F2EB",
+    muted: "#98948B",
+    accent: "#D4A359",
+    barMuted: "#3A3F4F",
+    rule: "#282B36",
+    font: '"Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif',
+    fontMeta: "Auditorium High-Contrast",
+    mood: "OBSIDIAN KEYNOTE · CHAMPAGNE GOLD · STAGE READY"
+  }
+];
+
+const I18N = {
+  en: {
+    navTag: "Editorial Anti-Slop Skill",
+    navBack: "← LocalTools",
+    navPro: "Pro 12 Templates (¥29.9 / $9.9)",
+    heroKicker: "OPEN-SOURCE AGENT SKILL · ZERO CDN · PRINT-READY @PAGE",
+    heroTitle: "Stop letting AI generate purple-neon slide slop.",
+    heroDesc: "DeckCraft ships 6 editorial design systems (Swiss, FT Salmon, Linear, Blueprint, Warm Linen, Obsidian) as a drop-in Agent Skill. Zero Google Fonts, zero emoji bullets, real tabular-nums and crisp inline SVG charts.",
+    installLbl: "ONE-LINE CLAUDE / AGENT INSTALL",
+    galTitle: "Live 6 Editorial Systems — Try, Edit & Print to PDF",
+    galSub: "Switch system tokens, enable inline editing, copy CSS variables, or print straight to PDF.",
+    btnEdit: "Enable Inline Edit",
+    btnEditOn: "Editing Enabled (Click Text)",
+    btnTokens: "Copy CSS Tokens",
+    btnPrint: "Print / Save PDF",
+    pvDocType: "SERIES A BOARD UPDATE",
+    pvTitle: "ARR quadrupled to $4.8M while CAC payback dropped to 6.4 months.",
+    pvLead: "Designed for board reviews, high-ticket B2B proposals, and crisp A4/16:9 PDF export without external font breakage.",
+    kpi1: "Annual Recurring Revenue",
+    kpi2: "Net Dollar Retention",
+    kpi3: "Enterprise Revenue Share",
+    chartTitle: "Quarterly ARR Trajectory ($M)",
+    b1: "3.1x seat growth inside 9 months",
+    b2: "81% gross margin post-infra tuning",
+    b3: "74% organic engineering referrals",
+    baTitle: "Before vs. After: Same Data, Zero AI Slop",
+    btnBefore: "Show Typical AI Slop",
+    btnAfter: "Show DeckCraft Editorial",
+    proTitle: "Open-Source Skill vs. DeckCraft Pro Commercial Bundle",
+    proSub: "Core Skill & 6 single-page prototypes stay MIT open source forever. Upgrade when you need ready-to-deliver client packs.",
+    free1: "✓ Complete SKILL.md + 15-rule Anti-Slop Checklist",
+    free2: "✓ One-line .claude-plugin marketplace install",
+    free3: "✓ 6 Design Systems Token Specs & Single-Page Gallery",
+    free4: "✓ Before / After reference HTML examples",
+    freeBtn: "Star & Clone on GitHub →",
+    pro1: "✓ 12 complete multi-slide / multi-page HTML templates (10-slide Series A Pitch Deck, B2B SOW Proposal, QBR Dashboard, Executive Resume, Product Launch, Brand Book, XHS 3:4 Editorial Carousel...)",
+    pro2: "✓ Zero-CDN offline Pro Gallery + Windows 1-click .bat launcher",
+    pro3: "✓ Pro SVG Chart & A4 Print Pagination Reference Guide",
+    pro4: "✓ Lifetime commercial client-delivery license",
+    proBtn: "Get DeckCraft Pro Bundle →",
+    modTitle: "Get DeckCraft Pro (12 Commercial Templates)",
+    modDesc: "Includes 12 complete multi-slide / A4 print templates, offline Pro gallery, SVG chart patterns, and commercial license.",
+    modClose: "Close"
+  },
+  zh: {
+    navTag: "拒绝 AI 紫蓝渐变廉价感",
+    navBack: "← 返回离线工具箱",
+    navPro: "Pro 12 套商用全案母版 (¥29.9)",
+    heroKicker: "开源 AGENT SKILL · 零外链 CDN · @PAGE 原生导出 PDF",
+    heroTitle: "别再让 AI 给你生成千篇一律的紫蓝发光 PPT 了。",
+    heroDesc: "DeckCraft 内置 6 大杂志级排版系统（瑞士编辑风、FT 金融时报、Linear 极简暗黑、建筑蓝图、温润亚麻、黑曜石发布会）。零外链字体、禁用 emoji 列表、原生等宽数字对齐与矢量图表。",
+    installLbl: "CLAUDE / AGENT 一键安装",
+    galTitle: "6 大设计系统在线实操 — 切换风格、改字、直接打印 PDF",
+    galSub: "点击切换风格，开启「实时改字」，一键复制 CSS 变量或 Ctrl+P 导出无损矢量 PDF。",
+    btnEdit: "开启页面直接改字",
+    btnEditOn: "改字模式已开启（点击文字即可改）",
+    btnTokens: "复制 CSS 变量",
+    btnPrint: "打印 / 导出 PDF",
+    pvDocType: "A 轮董事会经营简报",
+    pvTitle: "ARR 翻四倍至 $4.8M，获客回本周期压缩到 6.4 个月。",
+    pvLead: "专为董事会汇报、高客单价 B 端提案与 A4/16:9 打印 PDF 打造，断网环境零破图。",
+    kpi1: "年度经常性收入 (ARR)",
+    kpi2: "净美元留存率 (NDR)",
+    kpi3: "大客户收入占比",
+    chartTitle: "季度 ARR 增长轨迹（百万美元）",
+    b1: "9 个月内席位平均扩展 3.1 倍",
+    b2: "基础设施调优后毛利率达 81%",
+    b3: "74% 新线索来自研发口碑推荐",
+    baTitle: "同一组数据对比：普通 AI 模板 vs DeckCraft 编辑排版",
+    btnBefore: "看普通 AI 廉价风 (Before)",
+    btnAfter: "看 DeckCraft 编辑风 (After)",
+    proTitle: "开源核心 Skill vs DeckCraft Pro 商业交付母版库",
+    proSub: "6 套基础风格画廊与核心 Skill 永久 MIT 开源；做 B 端提案、融资路演、简历变现直接上 Pro 全套多页母版。",
+    free1: "✓ 完整 SKILL.md 工作流 + 15 条反 AI 廉价感自检清单",
+    free2: "✓ .claude-plugin 一行命令接入 Claude Code / Cursor",
+    free3: "✓ 6 大设计系统 CSS Token 规范与在线交互画廊",
+    free4: "✓ Before / After 真实对比 HTML 源码示例",
+    freeBtn: "去 GitHub Star 并克隆 →",
+    pro1: "✓ 12 套完整多页/多屏 HTML 商业母版（10 页 A 轮融资路演、B2B SOW 报价书、QBR 季度复盘、高管简历、架构蓝图、小红书 3:4 排版长图等）",
+    pro2: "✓ 离线版 Pro 母版画廊 + Windows 一键 .bat 启动器",
+    pro3: "✓ Pro 级多维 SVG 图表与 A4 打印防分页断裂指南",
+    pro4: "✓ 永久个人与商业接单交付授权（零外链，断网可用）",
+    proBtn: "获取 DeckCraft Pro 母版库 →",
+    modTitle: "获取 DeckCraft Pro v1.0（12 套商用母版全集）",
+    modDesc: "含 12 套多页/多屏零 CDN HTML 商业母版、离线总览画廊、高阶图表规范及永久商用授权。",
+    modClose: "关闭"
+  }
+};
+
+let currentLang = "zh";
+let activeSysId = "swiss";
+let editEnabled = false;
+let baMode = "after";
+
+function renderTabs() {
+  const wrap = document.getElementById("systemTabs");
+  if (!wrap) return;
+  wrap.innerHTML = SYSTEMS.map(s => {
+    const lbl = currentLang === "zh" ? s.labelZh : s.label;
+    return `<button class="sys-tab ${s.id === activeSysId ? "active" : ""}" onclick="selectSystem('${s.id}')">${lbl}</button>`;
+  }).join("");
+}
+
+function selectSystem(id) {
+  const sys = SYSTEMS.find(s => s.id === id) || SYSTEMS[0];
+  activeSysId = sys.id;
+  const card = document.getElementById("stageCard");
+  if (card && card.style && typeof card.style.setProperty === "function") {
+    card.style.setProperty("--pv-bg", sys.bg);
+    card.style.setProperty("--pv-surface", sys.surface);
+    card.style.setProperty("--pv-ink", sys.ink);
+    card.style.setProperty("--pv-muted", sys.muted);
+    card.style.setProperty("--pv-accent", sys.accent);
+    card.style.setProperty("--pv-rule", sys.rule);
+    card.style.setProperty("--pv-font", sys.font);
+  }
+  const badge = document.getElementById("pvBadge");
+  if (badge) badge.textContent = (currentLang === "zh" ? sys.labelZh : sys.label).toUpperCase();
+  const pal = document.getElementById("pvPaletteCode");
+  if (pal) pal.textContent = `${sys.bg} · ${sys.ink} · ${sys.accent}`;
+  const fm = document.getElementById("pvFontMeta");
+  if (fm) fm.textContent = sys.fontMeta;
+  const mf = document.getElementById("pvMoodFoot");
+  if (mf) mf.textContent = sys.mood + " · ZERO CDN";
+
+  renderChart(sys);
+  renderTabs();
+}
+
+function renderChart(sys) {
+  const svg = document.getElementById("pvSvg");
+  if (!svg) return;
+  const vals = [
+    { q: "Q1", v: "$1.2M", h: 36, c: sys.barMuted },
+    { q: "Q2", v: "$2.1M", h: 64, c: sys.barMuted },
+    { q: "Q3", v: "$3.4M", h: 102, c: sys.barMuted },
+    { q: "Q4", v: "$4.8M", h: 142, c: sys.accent }
+  ];
+  const base = 176;
+  const bars = vals.map((d, i) => {
+    const x = 58 + i * 112;
+    const y = base - d.h;
+    const txtColor = i === 3 ? sys.accent : sys.ink;
+    return `
+      <rect x="${x}" y="${y}" width="66" height="${d.h}" fill="${d.c}" />
+      <text x="${x + 33}" y="${y - 8}" text-anchor="middle" font-size="13" font-weight="700" fill="${txtColor}">${d.v}</text>
+      <text x="${x + 33}" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="${sys.muted}">${d.q}</text>
+    `;
+  }).join("");
+  svg.innerHTML = `
+    <line x1="24" y1="${base}" x2="496" y2="${base}" stroke="${sys.ink}" stroke-width="1.5" />
+    <line x1="24" y1="106" x2="496" y2="106" stroke="${sys.rule}" stroke-width="1" stroke-dasharray="4 4" />
+    <line x1="24" y1="36" x2="496" y2="36" stroke="${sys.rule}" stroke-width="1" stroke-dasharray="4 4" />
+    ${bars}
+  `;
+}
+
+function toggleEditMode() {
+  editEnabled = !editEnabled;
+  const nodes = document.querySelectorAll(".editable-node");
+  nodes.forEach(n => n.setAttribute("contenteditable", editEnabled ? "true" : "false"));
+  const btn = document.getElementById("btnEditMode");
+  if (btn) {
+    btn.textContent = editEnabled ? I18N[currentLang].btnEditOn : I18N[currentLang].btnEdit;
+    btn.classList.toggle("btn-accent", editEnabled);
+  }
+}
+
+function getTokensCss(id) {
+  const sys = SYSTEMS.find(s => s.id === id) || SYSTEMS[0];
+  return `:root {\n  --bg: ${sys.bg};\n  --surface: ${sys.surface};\n  --ink: ${sys.ink};\n  --muted: ${sys.muted};\n  --accent: ${sys.accent};\n  --rule: ${sys.rule};\n  --font-editorial: ${sys.font};\n}`;
+}
+
+function copyTokens() {
+  const css = getTokensCss(activeSysId);
+  if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(css).catch(() => {});
+  }
+  const btn = document.getElementById("btnCopyTokens");
+  if (btn) {
+    const old = I18N[currentLang].btnTokens;
+    btn.textContent = currentLang === "zh" ? "✓ 已复制 CSS 变量" : "✓ Copied!";
+    setTimeout(() => { btn.textContent = old; }, 1600);
+  }
+}
+
+function copyInstall() {
+  const txt = document.getElementById("installCmd")?.textContent || "";
+  if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).catch(() => {});
+  }
+  const b = document.getElementById("copyInstallBtn");
+  if (b) {
+    b.textContent = "COPIED";
+    setTimeout(() => { b.textContent = "COPY"; }, 1400);
+  }
+}
+
+function setBaMode(mode) {
+  baMode = mode;
+  const panel = document.getElementById("baPanel");
+  const btnB = document.getElementById("btnShowBefore");
+  const btnA = document.getElementById("btnShowAfter");
+  if (btnB && btnA) {
+    btnB.classList.toggle("btn-primary", mode === "before");
+    btnA.classList.toggle("btn-primary", mode === "after");
+  }
+  if (!panel) return;
+  if (mode === "before") {
+    panel.innerHTML = `
+      <div class="ba-mode-slop">
+        <div style="font-size:12px;color:#c4b5fd;font-weight:700;">✨ NEXT-GEN AI SYNERGY · TYPICAL PROMPT OUTPUT</div>
+        <div class="ba-slop-h">Revolutionizing Cloud Economics 🚀</div>
+        <p style="color:#94a3b8;font-size:13px;">Centered walls of text, purple neon glow shadows, emoji bullets, and blurry cards.</p>
+        <div class="ba-slop-cards">
+          <div class="ba-slop-card">💰 <strong>$4.8M ARR</strong><br><span style="color:#94a3b8;">Explosive Growth Engine</span></div>
+          <div class="ba-slop-card">📈 <strong>134% NDR</strong><br><span style="color:#94a3b8;">Synergistic Momentum</span></div>
+          <div class="ba-slop-card">⚡ <strong>6.4 mo Payback</strong><br><span style="color:#94a3b8;">Seamless Optimization</span></div>
+        </div>
+      </div>`;
+  } else {
+    panel.innerHTML = `
+      <div class="ba-mode-after">
+        <div>
+          <div style="font-family:ui-monospace,monospace;font-size:11px;color:#D9381E;font-weight:700;margin-bottom:6px;">01 · DECKCRAFT SWISS EDITORIAL</div>
+          <h3 style="font-size:24px;line-height:1.12;letter-spacing:-0.02em;margin-bottom:10px;">ARR quadrupled to $4.8M while payback fell to 6.4 months.</h3>
+          <p style="font-size:13px;color:#5A5A52;">Clear hierarchy, zero decorative gradients, 1px hairline rules, and concrete unit economics investors read in 3 seconds.</p>
+        </div>
+        <div style="border-top:2px solid #111111;">
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #DFDFD7;"><span>Annual Recurring Revenue</span><strong style="color:#D9381E;font-size:20px;">$4.8M</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #DFDFD7;"><span>Net Dollar Retention</span><strong style="font-size:20px;">134%</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;"><span>Blended CAC Payback</span><strong style="font-size:20px;">6.4 mo</strong></div>
+        </div>
+      </div>`;
+  }
+}
+
+function toggleLang() {
+  currentLang = currentLang === "zh" ? "en" : "zh";
+  applyI18n();
+}
+
+function applyI18n() {
+  const dict = I18N[currentLang];
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) el.textContent = dict[key];
+  });
+  selectSystem(activeSysId);
+  setBaMode(baMode);
+}
+
+function openCheckout() {
+  const cfg = (typeof window !== "undefined" && window.QZ_CHECKOUT) ? window.QZ_CHECKOUT : {};
+  const links = document.getElementById("modalLinks");
+  const priceCny = cfg.pro_price_cny || "¥29.9";
+  const priceUsd = cfg.pro_price_usd || "$9.9";
+  const pEl = document.getElementById("proPriceDisplay");
+  if (pEl) pEl.textContent = `${priceCny} / ${priceUsd}`;
+  if (links) {
+    const items = [];
+    if (cfg.afdian_url) {
+      items.push(`<a class="btn btn-accent" href="${cfg.afdian_url}" target="_blank" rel="noopener">爱发电 / 微信支付宝自动发货 (${priceCny}) →</a>`);
+    }
+    if (cfg.xianyu_url) {
+      items.push(`<a class="btn" href="${cfg.xianyu_url}" target="_blank" rel="noopener">闲鱼担保发货 (${priceCny}) →</a>`);
+    }
+    if (cfg.gumroad_url) {
+      items.push(`<a class="btn btn-primary" href="${cfg.gumroad_url}" target="_blank" rel="noopener">Gumroad Instant Download (${priceUsd}) →</a>`);
+    }
+    if (!items.length) {
+      const issueUrl = cfg.custom_issue_url || "https://github.com/qingzhou1204/deckcraft/issues/new";
+      items.push(`<div style="padding:12px;background:#F6F5F1;border:1px solid #DEDCD3;font-size:13px;">${currentLang === "zh" ? "自助收银台直链正在同步，可先在 GitHub 提 Issue 预约自动发货链接，或直接使用开源 6 套单页系统。" : "Direct checkout links are syncing. Open a quick GitHub request for instant bundle access or clone the MIT repo."}</div>`);
+      items.push(`<a class="btn btn-primary" href="${issueUrl}" target="_blank" rel="noopener" style="text-align:center;">GitHub Request / Custom Order →</a>`);
+    }
+    links.innerHTML = items.join("");
+  }
+  const modal = document.getElementById("checkoutModal");
+  if (modal) modal.classList.add("open");
+}
+
+function closeCheckout() {
+  const modal = document.getElementById("checkoutModal");
+  if (modal) modal.classList.remove("open");
+}
+
+if (typeof document !== "undefined" && document.readyState !== "loading") {
+  applyI18n();
+} else if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", applyI18n);
+}
+</script>
+</body>
+</html>

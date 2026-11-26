@@ -65,7 +65,7 @@ assert.ok(cfgCtx.window.QZ_CHECKOUT && cfgCtx.window.QZ_CHECKOUT.pro_price_cny, 
 // 2. Validate sitemap & robots
 const sitemap = fs.readFileSync(path.join(siteRoot, "sitemap.xml"), "utf-8");
 const locs = [...sitemap.matchAll(/<loc>https:\/\/qingzhou1204\.github\.io(\/[^<]*)<\/loc>/g)].map(m => m[1]);
-assert.equal(locs.length, 7, "Expected 7 URLs in sitemap.xml");
+assert.equal(locs.length, 8, "Expected 8 URLs in sitemap.xml");
 for (const u of locs) {
   const rel = u === "/" ? "index.html" : path.join(u.slice(1), "index.html");
   assert.ok(fs.existsSync(path.join(siteRoot, rel)), `Sitemap target missing: ${rel}`);
@@ -75,6 +75,9 @@ for (const u of locs) {
 runHtmlInVm("index.html");
 runHtmlInVm("tools/quote-generator/index.html");
 runHtmlInVm("tools/agent-ui-lab/index.html");
+const { ctx: dcCtx } = runHtmlInVm("tools/deckcraft/index.html");
+const dcCheck = new vm.Script("SYSTEMS.length").runInContext(dcCtx);
+assert.equal(dcCheck, 6, "Expected 6 editorial systems in tools/deckcraft/index.html");
 
 // 3b. Functional logic tests: FapiaoKit 5-limit + cross-format dedup
 const { ctx: fpCtx } = runHtmlInVm("tools/fapiao-kit/index.html");
