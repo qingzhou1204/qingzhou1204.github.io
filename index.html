@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QingZhou LocalTools · 轻舟离线工具箱 | 100% Browser-Local Privacy Utilities</title>
+  <meta name="description" content="Zero-install, 100% browser-local privacy utilities for finance CSV merging, A4 PDF quotes, e-commerce image compression & profit audit, Markdown-to-Anki, and Spatial Agent UI experiments." />
+  <meta property="og:title" content="QingZhou LocalTools · 轻舟离线工具箱" />
+  <meta property="og:description" content="100% Browser-Local Privacy Tools. Zero Server Upload. Free Online + Pro Offline Bundle." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://qingzhou1204.github.io/" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "QingZhou LocalTools",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Windows, macOS",
+    "url": "https://qingzhou1204.github.io/",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+  <script src="./checkout-config.js"></script>
+  <style>
+    :root {
+      --bg: #070b14; --panel: #0f1629; --card: #141e36; --border: #253459;
+      --text: #e8eefc; --muted: #93a3c7; --cyan: #38bdf8; --indigo: #818cf8;
+      --emerald: #34d399; --amber: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background: radial-gradient(circle at 18% 0%, #14203f 0%, var(--bg) 52%); color: var(--text); line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+    .nav { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(10px); background: rgba(7,11,20,.88); border-bottom: 1px solid var(--border); }
+    .nav-in { max-width: 1180px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 9px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; transition: .16s; }
+    .btn:hover { border-color: var(--cyan); transform: translateY(-1px); }
+    .btn-primary { background: linear-gradient(135deg, #0284c7, #38bdf8); color: #041423; border: 0; }
+    .btn-pro { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #1c1102; border: 0; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 36px 20px 64px; }
+    .hero { text-align: center; padding: 36px 16px 42px; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(160deg, rgba(20,30,54,.9), rgba(11,17,32,.92)); box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+    .pill { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--emerald); background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); margin-bottom: 14px; }
+    .hero h1 { margin: 0 0 12px; font-size: clamp(26px, 4vw, 42px); line-height: 1.2; }
+    .hero p { max-width: 760px; margin: 0 auto 22px; color: var(--muted); font-size: 15px; }
+    .hero-cta { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+    .section-head { margin: 48px 0 18px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 22px; }
+    .muted { color: var(--muted); font-size: 13.5px; }
+
+    .grid-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; transition: .18s; }
+    .card:hover { border-color: var(--cyan); transform: translateY(-2px); }
+    .tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); color: var(--cyan); }
+    .card h3 { margin: 0 0 6px; font-size: 17px; }
+
+    .grid-price { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .price-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+    .price-card.featured { border-color: var(--amber); background: linear-gradient(165deg, rgba(251,191,36,.08), rgba(15,22,41,.95)); }
+    .price-val { font-size: 30px; font-weight: 800; color: #fff; }
+    .ul { margin: 0; padding-left: 18px; color: #cbd5e1; font-size: 13.5px; }
+    .ul li { margin-bottom: 6px; }
+
+    .faq { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    .faq-item { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .faq-item h4 { margin: 0 0 6px; font-size: 14.5px; color: var(--cyan); }
+
+    footer { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; color: var(--muted); font-size: 12.5px; }
+
+    .modal-bg { position: fixed; inset: 0; background: rgba(3,6,14,.78); display: none; align-items: center; justify-content: center; padding: 18px; z-index: 60; }
+    .modal-bg.open { display: flex; }
+    .modal { max-width: 520px; width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 22px; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="./"><span class="dot"></span><span id="nav-brand">QingZhou LocalTools · 轻舟离线工具箱</span></a>
+    <div class="nav-actions">
+      <a class="btn" href="#tools" data-i18n="nav_tools">在线工具</a>
+      <a class="btn" href="#pro" data-i18n="nav_pro">Pro 离线版</a>
+      <a class="btn" href="https://github.com/qingzhou1204" target="_blank" rel="noopener">GitHub</a>
+      <button class="btn" id="lang-btn" onclick="toggleLang()">EN / 中文</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <span class="pill" data-i18n="hero_pill">100% 浏览器本地离线运算 · 数据不上传服务器 · 零安装即开即用</span>
+    <h1 data-i18n="hero_title">隐私优先的免费办公 & 效率工具矩阵</h1>
+    <p data-i18n="hero_desc">财务报销多表合并、商业报价单 A4 PDF、电商主图批压缩与利润核算、Markdown 转 Anki 卡片、Agent 空间交互原型——打开网页即刻免费使用，企业/个人还可一键获取可断网永久运行的 Pro 离线工具包。</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#tools" data-i18n="hero_cta1">立即免费使用 5 款工具</a>
+      <a class="btn btn-pro" href="#pro" data-i18n="hero_cta2">获取 Pro 离线全家桶 (自动发货)</a>
+      <a class="btn" href="https://github.com/qingzhou1204/local-privacy-toolkit" target="_blank" rel="noopener" data-i18n="hero_cta3">查看开源仓库 ★ Star</a>
+    </div>
+  </section>
+
+  <div class="section-head" id="tools">
+    <div>
+      <h2 data-i18n="sec_tools_t">5 款零安装在线工具（免费直接使用）</h2>
+      <div class="muted" data-i18n="sec_tools_d">全部文件仅在你自己的浏览器内存中解析，断网亦可独立运行。</div>
+    </div>
+  </div>
+
+  <section class="grid-tools">
+    <article class="card">
+      <div>
+        <div class="tag-row"><span class="tag">Finance / CSV</span><span class="tag">UTF-8 & GBK</span></div>
+        <h3 style="margin-top:10px" data-i18n="t1_t">多表报销 / 发票 CSV 合并查重台</h3>
+        <p class="muted" data-i18n="t1_d">拖入多部门 CSV 报销表，自动兼容 UTF-8/GBK 编码、清洗货币符号、跨文件拦截重复发票号与负金额异常，导出 Excel 不乱码总表。</p>
+      </div>
+      <a class="btn btn-primary" href="./tools/csv-invoice-merger/" data-i18n="open_tool">立即打开工具 →</a>
+    </article>
+
+    <article class="card">
+      <div>
+        <div class="tag-row"><span class="tag">Sales / Trade</span><span class="tag">A4 Print PDF</span></div>
+        <h3 style="margin-top:10px" data-i18n="t2_t">离线商业报价单 / 形式发票生成器</h3>
+        <p class="muted" data-i18n="t2_d">动态增删商品行、自动算折扣/税率/运费、支持 CNY/USD 双币汇率切换与人民币大写，内置标准 A4 排版一键导出 PDF。</p>
+      </div>
+      <a class="btn btn-primary" href="./tools/quote-generator/" data-i18n="open_tool">立即打开工具 →</a>
+    </article>
+
+    <article class="card">
+      <div>
+        <div class="tag-row"><span class="tag">E-Commerce</span><span class="tag">Canvas + ZIP</span></div>
+        <h3 style="margin-top:10px" data-i18n="t3_t">电商主图 800×800 批压缩 & SKU 利润核算</h3>
+        <p class="muted" data-i18n="t3_d">浏览器 Canvas 本地将商品图白底居中压至 800×800 并一键打成 ZIP 下载；同时支持多平台订单 CSV 核算净利润并预警亏损 SKU。</p>
+      </div>
+      <a class="btn btn-primary" href="./tools/ecommerce-kit/" data-i18n="open_tool">立即打开工具 →</a>
+    </article>
+
+    <article class="card">
+      <div>
+        <div class="tag-row"><span class="tag">Study / Anki</span><span class="tag">TSV Export</span></div>
+        <h3 style="margin-top:10px" data-i18n="t4_t">Markdown 笔记转 Anki 卡片工具</h3>
+        <p class="muted" data-i18n="t4_d">批量导入 Markdown 笔记，按标题自动生成层级标签，兼容 Q/A 问答与概念体，跨文件去重后导出标准 UTF-8 Anki TSV。</p>
+      </div>
+      <a class="btn btn-primary" href="./tools/md-to-anki/" data-i18n="open_tool">立即打开工具 →</a>
+    </article>
+
+    <article class="card">
+      <div>
+        <div class="tag-row"><span class="tag">AI UX Lab</span><span class="tag">Web Audio</span></div>
+        <h3 style="margin-top:10px" data-i18n="t5_t">Agent UI 空间直操交互实验室</h3>
+        <p class="muted" data-i18n="t5_d">A/B 对比「传统聊天框 vs 空间节点直操画布」，支持 Space 急停、动态补充约束实时重规划、任意节点接管编辑与分支对比。</p>
+      </div>
+      <a class="btn btn-primary" href="./tools/agent-ui-lab/" data-i18n="open_tool">立即打开工具 →</a>
+    </article>
+  </section>
+
+  <div class="section-head" id="pro">
+    <div>
+      <h2 data-i18n="sec_pro_t">开源免费版 vs Pro 离线完整包（24h 自动发货）</h2>
+      <div class="muted" data-i18n="sec_pro_d">在线工具永久免费；如需全套离线包、Chrome MV3 网页表格导出插件或专属定制，可自助获取。</div>
+    </div>
+  </div>
+
+  <section class="grid-price">
+    <div class="price-card">
+      <div>
+        <div class="tag">Community · MIT</div>
+        <h3 style="margin:10px 0 4px" data-i18n="p1_t">开源在线版</h3>
+        <div class="price-val">¥0 / $0</div>
+        <ul class="ul" style="margin-top:12px">
+          <li data-i18n="p1_1">5 款网页工具在线免费无限次使用</li>
+          <li data-i18n="p1_2">本地运行，敏感数据不出浏览器</li>
+          <li data-i18n="p1_3">GitHub Release 社区版源码下载</li>
+        </ul>
+      </div>
+      <a class="btn" id="btn-free-release" href="https://github.com/qingzhou1204/local-privacy-toolkit/releases/latest" target="_blank" rel="noopener" data-i18n="p1_btn">前往 GitHub Release 下载</a>
+    </div>
+
+    <div class="price-card featured">
+      <div>
+        <div class="tag" style="color:var(--amber);border-color:rgba(251,191,36,.4)">Pro Bundle · Auto Delivery</div>
+        <h3 style="margin:10px 0 4px" data-i18n="p2_t">Pro 离线全家桶 + Chrome 插件</h3>
+        <div class="price-val" id="pro-price">¥29.9 / $9.9</div>
+        <ul class="ul" style="margin-top:12px">
+          <li data-i18n="p2_1">全套单文件离线 HTML + 双击一键启动包（内网/无网电脑直接用）</li>
+          <li data-i18n="p2_2">附带 Chrome MV3 网页表格一键导出 CSV 插件（activeTab 极简权限）</li>
+          <li data-i18n="p2_3">附全套脱敏样例数据 + 中英双语图文使用说明书 + 后续小版本更新</li>
+        </ul>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-pro" style="flex:1" onclick="openCheckout('cn')" data-i18n="p2_btn_cn">国内自动发货 (爱发电/闲鱼)</button>
+        <button class="btn" style="flex:1" onclick="openCheckout('intl')" data-i18n="p2_btn_intl">Global Checkout (Gumroad)</button>
+      </div>
+    </div>
+
+    <div class="price-card">
+      <div>
+        <div class="tag">Commercial / Custom</div>
+        <h3 style="margin:10px 0 4px" data-i18n="p3_t">团队定制 & 专属格式适配</h3>
+        <div class="price-val" id="biz-price">¥199+ / $29+</div>
+        <ul class="ul" style="margin-top:12px">
+          <li data-i18n="p3_1">按公司真实 Excel/PDF/报价单抬头定制专属规则</li>
+          <li data-i18n="p3_2">可交付企业内网私有工具或 Python/n8n 自动化工作流</li>
+          <li data-i18n="p3_3">先用脱敏样例跑出 Demo 验证效果后再付款</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" onclick="openCheckout('custom')" data-i18n="p3_btn">提交定制需求 (GitHub Issue)</button>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <h2 data-i18n="faq_t">常见问题 / FAQ</h2>
+  </div>
+  <section class="faq">
+    <div class="faq-item">
+      <h4 data-i18n="f1_q">我的财务表格、报价单和商品图会上传到服务器吗？</h4>
+      <div class="muted" data-i18n="f1_a">不会。所有工具均基于浏览器原生 FileReader、Canvas 和标准 JS 实现，没有任何后端上传接口，断网也可继续处理。</div>
+    </div>
+    <div class="faq-item">
+      <h4 data-i18n="f2_q">导出的 CSV 用 Excel 打开会中文乱码吗？</h4>
+      <div class="muted" data-i18n="f2_a">不会。所有导出 CSV 均自动写入 UTF-8 BOM（\uFEFF）文件头，Windows Excel 双击直接正常显示中文。</div>
+    </div>
+    <div class="faq-item">
+      <h4 data-i18n="f3_q">购买 Pro 离线包如何自动发货？</h4>
+      <div class="muted" data-i18n="f3_a">付款完成后由平台（爱发电/闲鱼/Gumroad）自动发送离线压缩包下载链接，解压后双击即可在无网环境长期使用。</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>© 2026 QingZhou LocalTools · Built by <a href="https://github.com/qingzhou1204" target="_blank" rel="noopener" style="color:var(--cyan)">@qingzhou1204</a></span>
+    <span>MIT Open Source + Local-First Productivity</span>
+  </footer>
+</div>
+
+<div class="modal-bg" id="checkout-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 style="margin:0 0 8px" id="modal-title">获取 Pro 离线全家桶</h3>
+    <p class="muted" id="modal-desc"></p>
+    <div id="modal-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"></div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="closeModal()">关闭 / Close</button>
+  </div>
+</div>
+
+<script>
+const I18N = {
+  zh: {
+    nav_tools: "在线工具", nav_pro: "Pro 离线版",
+    hero_pill: "100% 浏览器本地离线运算 · 数据不上传服务器 · 零安装即开即用",
+    hero_title: "隐私优先的免费办公 & 效率工具矩阵",
+    hero_desc: "财务报销多表合并、商业报价单 A4 PDF、电商主图批压缩与利润核算、Markdown 转 Anki 卡片、Agent 空间交互原型——打开网页即刻免费使用，企业/个人还可一键获取可断网永久运行的 Pro 离线工具包。",
+    hero_cta1: "立即免费使用 5 款工具", hero_cta2: "获取 Pro 离线全家桶 (自动发货)", hero_cta3: "查看开源仓库 ★ Star",
+    sec_tools_t: "5 款零安装在线工具（免费直接使用）", sec_tools_d: "全部文件仅在你自己的浏览器内存中解析，断网亦可独立运行。",
+    open_tool: "立即打开工具 →",
+    t1_t: "多表报销 / 发票 CSV 合并查重台", t1_d: "拖入多部门 CSV 报销表，自动兼容 UTF-8/GBK 编码、清洗货币符号、跨文件拦截重复发票号与负金额异常，导出 Excel 不乱码总表。",
+    t2_t: "离线商业报价单 / 形式发票生成器", t2_d: "动态增删商品行、自动算折扣/税率/运费、支持 CNY/USD 双币汇率切换与人民币大写，内置标准 A4 排版一键导出 PDF。",
+    t3_t: "电商主图 800×800 批压缩 & SKU 利润核算", t3_d: "浏览器 Canvas 本地将商品图白底居中压至 800×800 并一键打成 ZIP 下载；同时支持多平台订单 CSV 核算净利润并预警亏损 SKU。",
+    t4_t: "Markdown 笔记转 Anki 卡片工具", t4_d: "批量导入 Markdown 笔记，按标题自动生成层级标签，兼容 Q/A 问答与概念体，跨文件去重后导出标准 UTF-8 Anki TSV。",
+    t5_t: "Agent UI 空间直操交互实验室", t5_d: "A/B 对比「传统聊天框 vs 空间节点直操画布」，支持 Space 急停、动态补充约束实时重规划、任意节点接管编辑与分支对比。",
+    sec_pro_t: "开源免费版 vs Pro 离线完整包（24h 自动发货）", sec_pro_d: "在线工具永久免费；如需全套离线包、Chrome MV3 网页表格导出插件或专属定制，可自助获取。",
+    p1_t: "开源在线版", p1_1: "5 款网页工具在线免费无限次使用", p1_2: "本地运行，敏感数据不出浏览器", p1_3: "GitHub Release 社区版源码下载", p1_btn: "前往 GitHub Release 下载",
+    p2_t: "Pro 离线全家桶 + Chrome 插件", p2_1: "全套单文件离线 HTML + 双击一键启动包（内网/无网电脑直接用）", p2_2: "附带 Chrome MV3 网页表格一键导出 CSV 插件（activeTab 极简权限）", p2_3: "附全套脱敏样例数据 + 中英双语图文使用说明书 + 后续小版本更新", p2_btn_cn: "国内自动发货 (爱发电/闲鱼)", p2_btn_intl: "Global Checkout (Gumroad)",
+    p3_t: "团队定制 & 专属格式适配", p3_1: "按公司真实 Excel/PDF/报价单抬头定制专属规则", p3_2: "可交付企业内网私有工具或 Python/n8n 自动化工作流", p3_3: "先用脱敏样例跑出 Demo 验证效果后再付款", p3_btn: "提交定制需求 (GitHub Issue)",
+    faq_t: "常见问题 / FAQ",
+    f1_q: "我的财务表格、报价单和商品图会上传到服务器吗？", f1_a: "不会。所有工具均基于浏览器原生 FileReader、Canvas 和标准 JS 实现，没有任何后端上传接口，断网也可继续处理。",
+    f2_q: "导出的 CSV 用 Excel 打开会中文乱码吗？", f2_a: "不会。所有导出 CSV 均自动写入 UTF-8 BOM（\\uFEFF）文件头，Windows Excel 双击直接正常显示中文。",
+    f3_q: "购买 Pro 离线包如何自动发货？", f3_a: "付款完成后由平台（爱发电/闲鱼/Gumroad）自动发送离线压缩包下载链接，解压后双击即可在无网环境长期使用。"
+  },
+  en: {
+    nav_tools: "Tools", nav_pro: "Pro Bundle",
+    hero_pill: "100% Browser-Local Processing · Zero Server Upload · Zero Install",
+    hero_title: "Privacy-First Local Productivity & Automation Tools",
+    hero_desc: "Merge multi-department finance CSVs, generate A4 PDF proforma quotes, batch-compress e-commerce photos to 800x800 ZIPs, convert Markdown to Anki decks, and test Spatial Agent UX—all locally in your browser.",
+    hero_cta1: "Try All 5 Tools Free", hero_cta2: "Get Pro Offline Bundle", hero_cta3: "View on GitHub ★ Star",
+    sec_tools_t: "5 Zero-Install Browser Utilities (Free Forever)", sec_tools_d: "Every file is processed strictly inside your local browser memory—works offline too.",
+    open_tool: "Launch Tool →",
+    t1_t: "Multi-CSV Invoice Merger & Deduplicator", t1_d: "Drop multiple department CSVs with auto UTF-8/GBK detection, clean currency symbols, flag duplicate invoice IDs and negative anomalies, and export Excel-ready CSV.",
+    t2_t: "Offline Commercial Quote / Proforma PDF", t2_d: "Dynamic line items, discount/tax/shipping calculation, dual CNY/USD conversion, localStorage auto-save, and clean A4 PDF print layout.",
+    t3_t: "E-Commerce 800×800 Image + SKU Profit Kit", t3_d: "Batch resize product images onto white 800×800 squares with native zero-dependency ZIP download, plus multi-channel SKU net margin & loss alerts.",
+    t4_t: "Markdown Notes to Anki Deck Converter", t4_d: "Parse Q/A blocks and bold definitions across multiple .md files, build hierarchical tags from headings, deduplicate, and export UTF-8 TSV.",
+    t5_t: "Agent UI Spatial Co-Pilot Lab", t5_d: "A/B compare linear chat vs. spatial canvas control with Spacebar pause, mid-flight constraint replanning, human takeover editing, and branch comparison.",
+    sec_pro_t: "Free Online vs. Pro Offline Bundle (Instant Auto-Delivery)", sec_pro_d: "Online editions are free forever. Grab the air-gapped offline bundle + Chrome MV3 table exporter if you work offline or want commercial templates.",
+    p1_t: "Community Edition", p1_1: "Unlimited free browser usage for all 5 tools", p1_2: "100% client-side privacy guarantee", p1_3: "MIT-licensed source & GitHub Release", p1_btn: "Download from GitHub Release",
+    p2_t: "Pro Offline Bundle + Chrome Extension", p2_1: "Air-gapped single-file HTML bundle + 1-click launcher for offline PCs", p2_2: "Includes Chrome MV3 Web-Table-to-CSV exporter (minimal activeTab permission)", p2_3: "Sample datasets + bilingual User Guide + minor updates included", p2_btn_cn: "China Auto-Delivery (CNY)", p2_btn_intl: "Global Checkout (USD)",
+    p3_t: "Custom Workflow & Format Adaptation", p3_1: "Tailored to your exact Excel/PDF schemas or company quote letterhead", p3_2: "Deliverable as private desktop tools or Python/n8n automations", p3_3: "Working demo verified on your sanitized samples before payment", p3_btn: "Request Custom Build (GitHub Issue)",
+    faq_t: "Frequently Asked Questions",
+    f1_q: "Do my spreadsheets, invoices, or images leave my computer?", f1_a: "Never. Everything runs locally via Browser FileReader and HTML5 Canvas with zero external API calls.",
+    f2_q: "Will exported CSV files show garbled Chinese characters in Excel?", f2_a: "No. Every exported CSV prepends a UTF-8 BOM header so Windows Excel opens it cleanly.",
+    f3_q: "How is the Pro Offline Bundle delivered?", f3_a: "Right after checkout, Gumroad / Afdian / Xianyu automatically delivers the standalone ZIP package."
+  }
+};
+
+let lang = "zh";
+function applyI18n() {
+  const dict = I18N[lang];
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (dict[k]) el.textContent = dict[k];
+  });
+  const cfg = window.QZ_CHECKOUT || {};
+  if (cfg.pro_price_cny && cfg.pro_price_usd) {
+    document.getElementById("pro-price").textContent = `${cfg.pro_price_cny} / ${cfg.pro_price_usd}`;
+  }
+  if (cfg.biz_price_cny && cfg.biz_price_usd) {
+    document.getElementById("biz-price").textContent = `${cfg.biz_price_cny}+ / ${cfg.biz_price_usd}+`;
+  }
+  if (cfg.free_release_url) {
+    document.getElementById("btn-free-release").href = cfg.free_release_url;
+  }
+}
+function toggleLang() {
+  lang = lang === "zh" ? "en" : "zh";
+  applyI18n();
+}
+
+function openCheckout(channel) {
+  const cfg = window.QZ_CHECKOUT || {};
+  if (channel === "cn") {
+    const url = cfg.afdian_url || cfg.xianyu_url;
+    if (url) { window.open(url, "_blank", "noopener"); return; }
+  }
+  if (channel === "intl") {
+    const url = cfg.gumroad_url || cfg.lemonsqueezy_url;
+    if (url) { window.open(url, "_blank", "noopener"); return; }
+  }
+  if (channel === "custom" && cfg.custom_issue_url) {
+    window.open(cfg.custom_issue_url, "_blank", "noopener");
+    return;
+  }
+  const modal = document.getElementById("checkout-modal");
+  document.getElementById("modal-title").textContent = lang === "zh" ? "获取 Pro 离线全家桶 / 获取自动发货入口" : "Get Pro Offline Bundle";
+  document.getElementById("modal-desc").textContent = lang === "zh"
+    ? "自动收款链接（爱发电 / Gumroad）可在 checkout-config.js 一键配置上线。当前你可以先通过 GitHub Release 免费下载社区开源版体验，或通过 GitHub Issue 联系定制！"
+    : "Auto-delivery checkout links (Gumroad / Afdian) are configured via checkout-config.js. Meanwhile, you can grab the MIT Community Release or open a custom request on GitHub.";
+  document.getElementById("modal-actions").innerHTML = `
+    <a class="btn btn-primary" href="${cfg.free_release_url || 'https://github.com/qingzhou1204/local-privacy-toolkit/releases'}" target="_blank" rel="noopener">📦 前往 GitHub Releases 免费下载社区版</a>
+    <a class="btn" href="${cfg.custom_issue_url || 'https://github.com/qingzhou1204/local-privacy-toolkit/issues/new'}" target="_blank" rel="noopener">🛠 提交定制需求 / 联系作者 (GitHub Issue)</a>
+  `;
+  modal.classList.add("open");
+}
+function closeModal() {
+  document.getElementById("checkout-modal").classList.remove("open");
+}
+applyI18n();
+</script>
+</body>
+</html>

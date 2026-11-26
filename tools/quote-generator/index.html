@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>离线商业报价单 / 形式发票生成器（CNY / USD · A4 PDF）</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --paper: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #cbd5e1;
+      --soft: #f8fafc;
+      --brand: #1d4ed8;
+      --brand-dark: #1e3a8a;
+      --accent: #0f766e;
+      --danger: #dc2626;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px 16px 48px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .toolbar {
+      max-width: 920px;
+      margin: 0 auto 16px;
+      padding: 12px 16px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: var(--radius);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+    }
+
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-tag {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.3px;
+      margin-right: 6px;
+      color: #93c5fd;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 7px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn:hover { background: #334155; }
+    .btn-primary {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-success {
+      background: #059669;
+      border-color: #059669;
+      color: #ffffff;
+    }
+    .btn-success:hover { background: #047857; }
+    .btn-light {
+      background: #ffffff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-light:hover { background: var(--soft); }
+    .btn-danger-sm {
+      background: #fef2f2;
+      color: var(--danger);
+      border: 1px solid #fecaca;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-danger-sm:hover { background: #fee2e2; }
+
+    .ctrl-select, .ctrl-rate {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+    .ctrl-rate { width: 72px; text-align: right; }
+
+    .status-toast {
+      max-width: 920px;
+      margin: 0 auto 12px;
+      padding: 8px 14px;
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      color: #065f46;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .paper {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--paper);
+      border-radius: 12px;
+      padding: 36px 40px 40px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid var(--brand);
+      margin-bottom: 22px;
+    }
+
+    .doc-title-block h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      color: var(--brand-dark);
+      letter-spacing: 0.5px;
+    }
+    .doc-title-block .sub {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: auto 180px;
+      gap: 6px 10px;
+      align-items: center;
+      font-size: 13px;
+    }
+    .meta-grid label {
+      color: var(--muted);
+      text-align: right;
+      font-weight: 600;
+    }
+
+    input[type="text"], input[type="date"], input[type="number"], textarea, select.inline-select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--ink);
+      background: #ffffff;
+    }
+    input:focus, textarea:focus, select.inline-select:focus {
+      outline: 2px solid rgba(37, 99, 235, 0.25);
+      border-color: var(--brand);
+    }
+
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+    .party-card {
+      background: var(--soft);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .party-card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--brand);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .party-row {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .party-row:last-child { margin-bottom: 0; }
+    .party-row span { color: var(--muted); font-size: 12px; }
+
+    .items-section { margin-bottom: 20px; }
+    .items-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .items-header h3 {
+      margin: 0;
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    table.quote-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.quote-table th {
+      background: #1e293b;
+      color: #ffffff;
+      font-weight: 600;
+      padding: 10px 8px;
+      text-align: left;
+      border: 1px solid #1e293b;
+      white-space: nowrap;
+    }
+    table.quote-table td {
+      padding: 7px 6px;
+      border: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    table.quote-table tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .num { text-align: right; }
+    .center { text-align: center; }
+    .line-total {
+      font-weight: 700;
+      color: var(--ink);
+      white-space: nowrap;
+      padding-right: 4px;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: start;
+      margin-top: 16px;
+    }
+
+    .terms-box label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .terms-box textarea {
+      min-height: 138px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .summary-card {
+      background: var(--soft);
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .sum-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 13px;
+    }
+    .sum-row:last-child { border-bottom: none; }
+    .sum-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sum-ctrl input {
+      width: 78px;
+      text-align: right;
+      padding: 4px 6px;
+    }
+    .tax-presets {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .preset-pill {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .preset-pill:hover { border-color: var(--brand); color: var(--brand); }
+
+    .grand-total-row {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 2px solid var(--brand);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .grand-total-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--brand-dark);
+    }
+    .grand-total-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--brand);
+    }
+    .amount-words {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--accent);
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .sign-area {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid #e2e8f0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .sign-line {
+      margin-top: 34px;
+      border-bottom: 1px solid #94a3b8;
+    }
+
+    .offline-foot {
+      max-width: 920px;
+      margin: 14px auto 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+        font-size: 12px;
+      }
+      .no-print, .toolbar, .status-toast, .offline-foot, .tax-presets, .col-action {
+        display: none !important;
+      }
+      .paper {
+        max-width: 100%;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+      }
+      input[type="text"], input[type="date"], input[type="number"], textarea {
+        border: none !important;
+        background: transparent !important;
+        padding: 2px 0 !important;
+        outline: none !important;
+        resize: none !important;
+      }
+      .party-card, .summary-card {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      table.quote-table th {
+        background: #1e293b !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .grand-total-value {
+        color: #1d4ed8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="max-width:920px;margin:0 auto 10px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#475569;">
+    <a href="../../" style="text-decoration:none;color:#1d4ed8;font-weight:700;">← 返回轻舟离线工具箱官网</a>
+    <a href="../../#pro" style="text-decoration:none;color:#b45309;font-weight:700;">📦 获取离线全家桶 + Chrome 表格导出插件</a>
+  </div>
+  <div class="toolbar no-print">
+    <div class="toolbar-group">
+      <span class="brand-tag">离线报价单生成器</span>
+      <select id="docType" class="ctrl-select" title="单据类型">
+        <option value="quotation">商业报价单 / QUOTATION</option>
+        <option value="proforma">形式发票 / PROFORMA INVOICE</option>
+      </select>
+      <select id="currencySelect" class="ctrl-select" title="币种切换">
+        <option value="CNY">CNY (¥ 人民币)</option>
+        <option value="USD">USD ($ 美元)</option>
+      </select>
+      <span style="font-size:12px;color:#cbd5e1;">汇率 1 USD =</span>
+      <input id="fxRate" type="number" step="0.01" min="0.01" value="7.20" class="ctrl-rate" title="参考汇率" />
+      <button id="btnConvertFx" class="btn" type="button" title="按当前汇率换算所有单价">换算单价</button>
+    </div>
+    <div class="toolbar-group">
+      <button id="btnSaveDraft" class="btn" type="button">保存草稿</button>
+      <button id="btnExportJson" class="btn" type="button">导出JSON</button>
+      <button id="btnImportJson" class="btn" type="button">导入JSON</button>
+      <input id="fileImport" type="file" accept=".json" style="display:none" />
+      <button id="btnResetSample" class="btn" type="button">重置样例</button>
+      <button id="btnPrintPdf" class="btn btn-primary" type="button">打印 / 导出 A4 PDF</button>
+    </div>
+  </div>
+
+  <div id="statusToast" class="status-toast no-print"></div>
+
+  <main class="paper" id="quotePaper">
+    <header class="doc-header">
+      <div class="doc-title-block">
+        <h1 id="docTitleCn">商业报价单</h1>
+        <div class="sub" id="docTitleEn">COMMERCIAL QUOTATION</div>
+      </div>
+      <div class="meta-grid">
+        <label for="quoteNo">报价单号 / No.</label>
+        <input id="quoteNo" type="text" value="QT-20261121-001" />
+        <label for="quoteDate">报价日期 / Date</label>
+        <input id="quoteDate" type="date" value="2026-11-21" />
+        <label for="validUntil">有效期至 / Valid</label>
+        <input id="validUntil" type="date" value="2026-12-21" />
+      </div>
+    </header>
+
+    <section class="parties">
+      <div class="party-card">
+        <h3>卖方信息 / SELLER</h3>
+        <div class="party-row"><span>公司名称</span><input id="sellerCompany" type="text" value="星航跨境供应链有限公司" /></div>
+        <div class="party-row"><span>联系人</span><input id="sellerContact" type="text" value="陈经理（外贸业务部）" /></div>
+        <div class="party-row"><span>电子邮箱</span><input id="sellerEmail" type="text" value="sales@example-trade.local" /></div>
+        <div class="party-row"><span>地址备注</span><input id="sellerAddress" type="text" value="中国广东省深圳市宝安区智造产业园 B 栋" /></div>
+      </div>
+      <div class="party-card">
+        <h3>买方信息 / BUYER</h3>
+        <div class="party-row"><span>客户公司</span><input id="buyerCompany" type="text" value="Pacific Retail Supply Co., Ltd." /></div>
+        <div class="party-row"><span>联系人</span><input id="buyerContact" type="text" value="Alex Morgan / 采购主管" /></div>
+        <div class="party-row"><span>电子邮箱</span><input id="buyerEmail" type="text" value="purchasing@example-buyer.local" /></div>
+        <div class="party-row"><span>交货地点</span><input id="buyerAddress" type="text" value="FOB Shenzhen / 深圳盐田港" /></div>
+      </div>
+    </section>
+
+    <section class="items-section">
+      <div class="items-header">
+        <h3>产品报价明细 / LINE ITEMS</h3>
+        <button id="btnAddRow" class="btn btn-success no-print" type="button">+ 新增报价行</button>
+      </div>
+      <table class="quote-table" id="itemsTable">
+        <thead>
+          <tr>
+            <th class="center" style="width:42px;">#</th>
+            <th>品名与规格 / Item &amp; Specification</th>
+            <th class="center" style="width:74px;">单位</th>
+            <th class="num" style="width:82px;">数量</th>
+            <th class="num" style="width:110px;">单价 (<span class="currency-code">CNY</span>)</th>
+            <th class="num" style="width:80px;">折扣%</th>
+            <th class="num" style="width:124px;">小计 (<span class="currency-code">CNY</span>)</th>
+            <th class="center col-action" style="width:52px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="bottom-grid">
+      <div class="terms-box">
+        <label for="termsText">贸易条款与备注 / TERMS &amp; NOTES</label>
+        <textarea id="termsText">1. 报价有效期：自报价日起 30 天内有效，逾期请重新确认原材料与汇率波动。
+2. 交货周期：确认订单及包装资料后 10-15 个工作日完成生产与质检。
+3. 包装方式：标准出口五层瓦楞纸箱，附中性麦头及装箱清单。
+4. 税费与运费：可根据客户需求切换含税/不含税及 FOB/CIF 报价方式。</textarea>
+      </div>
+      <div class="summary-card">
+        <div class="sum-row">
+          <span>商品金额小计 (Subtotal)</span>
+          <strong id="subtotalDisplay">¥0.00</strong>
+        </div>
+        <div class="sum-row">
+          <span>整单额外折扣 (Discount)</span>
+          <div class="sum-ctrl">
+            <input id="extraDiscountPct" type="number" min="0" max="100" step="0.5" value="2" />
+            <span>%</span>
+            <span id="discountAmountDisplay" style="min-width:74px;text-align:right;color:#dc2626;">-¥0.00</span>
+          </div>
+        </div>
+        <div class="sum-row" style="align-items:flex-start;">
+          <div>
+            <span>税率 (Tax Rate)</span>
+            <div class="tax-presets no-print">
+              <button type="button" class="preset-pill" data-tax="0">0%免税</button>
+              <button type="button" class="preset-pill" data-tax="6">6%服务</button>
+              <button type="button" class="preset-pill" data-tax="13">13%专票</button>
+            </div>
+          </div>
+          <div class="sum-ctrl">
+            <input id="taxRatePct" type="number" min="0" max="100" step="0.5" value="13" />
+            <span>%</span>
+            <span id="taxAmountDisplay" style="min-width:74px;text-align:right;">¥0.00</span>
+          </div>
+        </div>
+        <div class="sum-row">
+          <span>运费/杂费 (Shipping)</span>
+          <div class="sum-ctrl">
+            <input id="shippingFee" type="number" min="0" step="1" value="350" />
+            <span class="currency-code">CNY</span>
+          </div>
+        </div>
+        <div class="grand-total-row">
+          <span class="grand-total-label">应付总计 / TOTAL</span>
+          <span class="grand-total-value" id="grandTotalDisplay">¥0.00</span>
+        </div>
+        <div class="amount-words" id="amountWordsDisplay">大写：零元整</div>
+      </div>
+    </section>
+
+    <section class="sign-area">
+      <div>
+        <div>卖方签章确认 / Authorized Seller Signature</div>
+        <div class="sign-line"></div>
+      </div>
+      <div>
+        <div>买方确认回签 / Buyer Confirmation</div>
+        <div class="sign-line"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="offline-foot no-print">
+    纯本地离线单文件运行 · 零外部联网依赖 · 点击右上角「打印 / 导出 A4 PDF」在打印弹窗选择「另存为 PDF」即可输出高清商业报价单
+  </footer>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEY = "offline_quote_builder_v1";
+      const SAMPLE_ITEMS = [
+        { name: "折叠式桌面 LED 补光灯（三档色温 / USB-C）", unit: "台", qty: 100, price: 42.5, discount: 0 },
+        { name: "便携静音无刷小风扇（4000mAh / 含中性彩盒）", unit: "台", qty: 200, price: 29.8, discount: 5 },
+        { name: "硅胶磁吸理线器 3 枚装（环保袋装 / 可定制 Logo）", unit: "套", qty: 500, price: 8.6, discount: 3 },
+        { name: "出口加厚五层外箱定制及托盘打膜加固费", unit: "批", qty: 1, price: 680.0, discount: 0 }
+      ];
+
+      let currentCurrency = "CNY";
+      let items = [];
+
+      const els = {
+        docType: document.getElementById("docType"),
+        docTitleCn: document.getElementById("docTitleCn"),
+        docTitleEn: document.getElementById("docTitleEn"),
+        currencySelect: document.getElementById("currencySelect"),
+        fxRate: document.getElementById("fxRate"),
+        itemsBody: document.getElementById("itemsBody"),
+        extraDiscountPct: document.getElementById("extraDiscountPct"),
+        taxRatePct: document.getElementById("taxRatePct"),
+        shippingFee: document.getElementById("shippingFee"),
+        subtotalDisplay: document.getElementById("subtotalDisplay"),
+        discountAmountDisplay: document.getElementById("discountAmountDisplay"),
+        taxAmountDisplay: document.getElementById("taxAmountDisplay"),
+        grandTotalDisplay: document.getElementById("grandTotalDisplay"),
+        amountWordsDisplay: document.getElementById("amountWordsDisplay"),
+        statusToast: document.getElementById("statusToast"),
+        fileImport: document.getElementById("fileImport")
+      };
+
+      const FIELD_IDS = [
+        "docType", "quoteNo", "quoteDate", "validUntil",
+        "sellerCompany", "sellerContact", "sellerEmail", "sellerAddress",
+        "buyerCompany", "buyerContact", "buyerEmail", "buyerAddress",
+        "termsText", "extraDiscountPct", "taxRatePct", "shippingFee", "fxRate"
+      ];
+
+      function showToast(msg) {
+        els.statusToast.textContent = msg;
+        els.statusToast.style.display = "block";
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(function () {
+          els.statusToast.style.display = "none";
+        }, 2800);
+      }
+
+      function currencySymbol(code) {
+        return code === "USD" ? "$" : "¥";
+      }
+
+      function formatMoney(num) {
+        const val = Number.isFinite(num) ? num : 0;
+        const formatted = val.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        return currencySymbol(currentCurrency) + formatted;
+      }
+
+      function numberToChineseUppercase(n) {
+        if (!Number.isFinite(n) || n <= 0) return "零元整";
+        const digits = ["零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"];
+        const units = ["", "拾", "佰", "仟"];
+        const bigUnits = ["", "万", "亿", "兆"];
+        const fixed = Math.round(n * 100);
+        const intPart = Math.floor(fixed / 100);
+        const decPart = fixed % 100;
+        const jiao = Math.floor(decPart / 10);
+        const fen = decPart % 10;
+
+        let intStr = "";
+        if (intPart === 0) {
+          intStr = "零";
+        } else {
+          let temp = intPart;
+          let sectionIdx = 0;
+          let needZero = false;
+          while (temp > 0) {
+            const section = temp % 10000;
+            if (section > 0) {
+              let secStr = "";
+              let zeroFlag = false;
+              for (let i = 0; i < 4; i++) {
+                const d = Math.floor(section / Math.pow(10, i)) % 10;
+                if (d === 0) {
+                  if (secStr !== "") zeroFlag = true;
+                } else {
+                  if (zeroFlag) {
+                    secStr = "零" + secStr;
+                    zeroFlag = false;
+                  }
+                  secStr = digits[d] + units[i] + secStr;
+                }
+              }
+              if (needZero && section < 1000 && intStr !== "") {
+                secStr = secStr + "零";
+              }
+              intStr = secStr + bigUnits[sectionIdx] + intStr;
+              needZero = section < 1000;
+            } else if (intStr !== "") {
+              needZero = true;
+            }
+            temp = Math.floor(temp / 10000);
+            sectionIdx++;
+          }
+          intStr = intStr.replace(/零+/g, "零").replace(/零$/, "");
+        }
+
+        let res = intStr + "元";
+        if (jiao === 0 && fen === 0) {
+          res += "整";
+        } else {
+          if (jiao > 0) res += digits[jiao] + "角";
+          else if (intPart > 0) res += "零";
+          if (fen > 0) res += digits[fen] + "分";
+        }
+        return res;
+      }
+
+      function syncDocTitle() {
+        if (els.docType.value === "proforma") {
+          els.docTitleCn.textContent = "形式发票";
+          els.docTitleEn.textContent = "PROFORMA INVOICE";
+        } else {
+          els.docTitleCn.textContent = "商业报价单";
+          els.docTitleEn.textContent = "COMMERCIAL QUOTATION";
+        }
+      }
+
+      function syncCurrencyLabels() {
+        document.querySelectorAll(".currency-code").forEach(function (node) {
+          node.textContent = currentCurrency;
+        });
+      }
+
+      function escapeAttr(str) {
+        return String(str == null ? "" : str)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function renderRows() {
+        els.itemsBody.innerHTML = "";
+        items.forEach(function (item, idx) {
+          const tr = document.createElement("tr");
+          tr.dataset.index = String(idx);
+          tr.innerHTML =
+            '<td class="center">' + (idx + 1) + "</td>" +
+            '<td><input type="text" data-field="name" value="' + escapeAttr(item.name) + '" placeholder="输入品名、型号或规格" /></td>' +
+            '<td><input type="text" class="center" data-field="unit" value="' + escapeAttr(item.unit) + '" placeholder="件" /></td>' +
+            '<td><input type="number" class="num" data-field="qty" min="0" step="1" value="' + item.qty + '" /></td>' +
+            '<td><input type="number" class="num" data-field="price" min="0" step="0.01" value="' + item.price + '" /></td>' +
+            '<td><input type="number" class="num" data-field="discount" min="0" max="100" step="0.5" value="' + item.discount + '" /></td>' +
+            '<td class="num line-total" data-line-total="' + idx + '"></td>' +
+            '<td class="center col-action"><button type="button" class="btn-danger-sm" data-del="' + idx + '" title="删除此行">×</button></td>';
+          els.itemsBody.appendChild(tr);
+        });
+        recalculate();
+      }
+
+      function recalculate() {
+        let subtotal = 0;
+        items.forEach(function (item, idx) {
+          const qty = Math.max(0, Number(item.qty) || 0);
+          const price = Math.max(0, Number(item.price) || 0);
+          const disc = Math.min(100, Math.max(0, Number(item.discount) || 0));
+          const lineAmt = qty * price * (1 - disc / 100);
+          subtotal += lineAmt;
+          const cell = els.itemsBody.querySelector('[data-line-total="' + idx + '"]');
+          if (cell) cell.textContent = formatMoney(lineAmt);
+        });
+
+        const extraDiscPct = Math.min(100, Math.max(0, Number(els.extraDiscountPct.value) || 0));
+        const discountAmt = subtotal * (extraDiscPct / 100);
+        const afterDiscount = subtotal - discountAmt;
+
+        const taxPct = Math.max(0, Number(els.taxRatePct.value) || 0);
+        const taxAmt = afterDiscount * (taxPct / 100);
+
+        const shipping = Math.max(0, Number(els.shippingFee.value) || 0);
+        const grandTotal = afterDiscount + taxAmt + shipping;
+
+        els.subtotalDisplay.textContent = formatMoney(subtotal);
+        els.discountAmountDisplay.textContent = "-" + formatMoney(discountAmt);
+        els.taxAmountDisplay.textContent = formatMoney(taxAmt);
+        els.grandTotalDisplay.textContent = formatMoney(grandTotal);
+
+        if (currentCurrency === "CNY") {
+          els.amountWordsDisplay.textContent = "人民币大写：" + numberToChineseUppercase(grandTotal);
+        } else {
+          const cnyEq = grandTotal * (Number(els.fxRate.value) || 7.2);
+          els.amountWordsDisplay.textContent = "USD Total · 折合人民币约 ¥" + cnyEq.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+        }
+      }
+
+      function collectState() {
+        const fields = {};
+        FIELD_IDS.forEach(function (id) {
+          const node = document.getElementById(id);
+          if (node) fields[id] = node.value;
+        });
+        return {
+          version: 1,
+          currency: currentCurrency,
+          fields: fields,
+          items: items
+        };
+      }
+
+      function applyState(state) {
+        if (!state || typeof state !== "object") return;
+        if (state.currency === "USD" || state.currency === "CNY") {
+          currentCurrency = state.currency;
+          els.currencySelect.value = currentCurrency;
+        }
+        if (state.fields) {
+          FIELD_IDS.forEach(function (id) {
+            const node = document.getElementById(id);
+            if (node && state.fields[id] !== undefined) {
+              node.value = state.fields[id];
+            }
+          });
+        }
+        if (Array.isArray(state.items) && state.items.length > 0) {
+          items = state.items.map(function (it) {
+            return {
+              name: String(it.name || ""),
+              unit: String(it.unit || "件"),
+              qty: Number(it.qty) || 0,
+              price: Number(it.price) || 0,
+              discount: Number(it.discount) || 0
+            };
+          });
+        }
+        syncDocTitle();
+        syncCurrencyLabels();
+        renderRows();
+      }
+
+      // Event listeners
+      els.docType.addEventListener("change", syncDocTitle);
+
+      els.currencySelect.addEventListener("change", function () {
+        currentCurrency = els.currencySelect.value;
+        syncCurrencyLabels();
+        recalculate();
+      });
+
+      document.getElementById("btnConvertFx").addEventListener("click", function () {
+        const rate = Number(els.fxRate.value);
+        if (!Number.isFinite(rate) || rate <= 0) {
+          showToast("请输入有效的正数汇率");
+          return;
+        }
+        const toUsd = currentCurrency === "CNY";
+        currentCurrency = toUsd ? "USD" : "CNY";
+        els.currencySelect.value = currentCurrency;
+        items = items.map(function (it) {
+          const converted = toUsd ? (it.price / rate) : (it.price * rate);
+          return Object.assign({}, it, { price: Number(converted.toFixed(2)) });
+        });
+        const oldShip = Number(els.shippingFee.value) || 0;
+        els.shippingFee.value = (toUsd ? (oldShip / rate) : (oldShip * rate)).toFixed(2);
+        syncCurrencyLabels();
+        renderRows();
+        showToast("已按汇率 " + rate + " 切换至 " + currentCurrency + " 并完成全部单价与运费换算");
+      });
+
+      document.getElementById("btnAddRow").addEventListener("click", function () {
+        items.push({ name: "", unit: "件", qty: 1, price: 0, discount: 0 });
+        renderRows();
+      });
+
+      els.itemsBody.addEventListener("input", function (e) {
+        const target = e.target;
+        const field = target.dataset.field;
+        if (!field) return;
+        const tr = target.closest("tr");
+        const idx = Number(tr.dataset.index);
+        if (!Number.isInteger(idx) || !items[idx]) return;
+        if (field === "name" || field === "unit") {
+          items[idx][field] = target.value;
+        } else {
+          items[idx][field] = Number(target.value) || 0;
+        }
+        recalculate();
+      });
+
+      els.itemsBody.addEventListener("click", function (e) {
+        const btn = e.target.closest("[data-del]");
+        if (!btn) return;
+        const idx = Number(btn.dataset.del);
+        if (items.length <= 1) {
+          showToast("至少保留 1 行报价明细");
+          return;
+        }
+        items.splice(idx, 1);
+        renderRows();
+      });
+
+      [els.extraDiscountPct, els.taxRatePct, els.shippingFee, els.fxRate].forEach(function (node) {
+        node.addEventListener("input", recalculate);
+      });
+
+      document.querySelectorAll("[data-tax]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          els.taxRatePct.value = btn.dataset.tax;
+          recalculate();
+        });
+      });
+
+      document.getElementById("btnSaveDraft").addEventListener("click", function () {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+          showToast("草稿已保存到当前浏览器本地存储（纯离线）");
+        } catch (err) {
+          showToast("当前浏览器限制了本地存储，可使用「导出JSON」备份");
+        }
+      });
+
+      document.getElementById("btnExportJson").addEventListener("click", function () {
+        const data = JSON.stringify(collectState(), null, 2);
+        const blob = new Blob([data], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = (document.getElementById("quoteNo").value || "quote") + ".json";
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        showToast("报价单草稿 JSON 已导出");
+      });
+
+      document.getElementById("btnImportJson").addEventListener("click", function () {
+        els.fileImport.click();
+      });
+
+      els.fileImport.addEventListener("change", function () {
+        const file = els.fileImport.files && els.fileImport.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function () {
+          try {
+            const parsed = JSON.parse(String(reader.result || "{}"));
+            applyState(parsed);
+            showToast("已导入草稿：" + file.name);
+          } catch (err) {
+            showToast("JSON 文件格式无效，请检查后重试");
+          }
+        };
+        reader.readAsText(file, "utf-8");
+        els.fileImport.value = "";
+      });
+
+      document.getElementById("btnResetSample").addEventListener("click", function () {
+        currentCurrency = "CNY";
+        els.currencySelect.value = "CNY";
+        els.extraDiscountPct.value = "2";
+        els.taxRatePct.value = "13";
+        els.shippingFee.value = "350";
+        items = SAMPLE_ITEMS.map(function (it) { return Object.assign({}, it); });
+        syncCurrencyLabels();
+        renderRows();
+        showToast("已恢复默认外贸/商务报价样例");
+      });
+
+      document.getElementById("btnPrintPdf").addEventListener("click", function () {
+        window.print();
+      });
+
+      // Initialize
+      let loaded = false;
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          applyState(JSON.parse(saved));
+          loaded = true;
+        }
+      } catch (err) {
+        loaded = false;
+      }
+      if (!loaded) {
+        items = SAMPLE_ITEMS.map(function (it) { return Object.assign({}, it); });
+        syncDocTitle();
+        syncCurrencyLabels();
+        renderRows();
+      }
+    })();
+  </script>
+</body>
+</html>

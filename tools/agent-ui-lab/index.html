@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent UI 交互实验室 · 空间直操 vs 线性对话原型</title>
+<style>
+  :root {
+    --bg: #070b14;
+    --bg2: #0d1323;
+    --panel: rgba(16, 23, 42, 0.88);
+    --card: #131c33;
+    --border: #253358;
+    --text: #e8eefc;
+    --muted: #8b9bc1;
+    --cyan: #38bdf8;
+    --indigo: #818cf8;
+    --emerald: #34d399;
+    --amber: #fbbf24;
+    --rose: #fb7185;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: radial-gradient(circle at 20% 0%, #131e3a 0%, var(--bg) 55%); color: var(--text); }
+  body { display: flex; flex-direction: column; overflow-x: hidden; }
+
+  /* 顶部实验控制台 */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 12px 22px; border-bottom: 1px solid var(--border); background: rgba(9, 13, 25, 0.92); backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 30;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .55; } }
+  .brand h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .3px; }
+  .brand small { color: var(--muted); font-size: 12px; display: block; }
+
+  .controls-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .seg { display: inline-flex; background: #0b1020; border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; transition: .18s;
+  }
+  .seg button.active { background: linear-gradient(135deg, #0284c7, #6366f1); color: #fff; box-shadow: 0 2px 10px rgba(56,189,248,.28); }
+  .btn {
+    border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: .15s;
+  }
+  .btn:hover { border-color: var(--cyan); transform: translateY(-1px); }
+  .btn-go { background: linear-gradient(135deg, #0ea5e9, #38bdf8); color: #041322; border: 0; }
+  .btn-warn { background: rgba(251,191,36,.15); color: var(--amber); border-color: rgba(251,191,36,.45); }
+  .btn-rose { background: rgba(251,113,133,.15); color: var(--rose); border-color: rgba(251,113,133,.45); }
+  .btn-ok { background: rgba(52,211,153,.16); color: var(--emerald); border-color: rgba(52,211,153,.45); }
+
+  /* 主工作台布局 */
+  .main-grid {
+    flex: 1; display: grid; grid-template-columns: 310px 1fr 350px; gap: 14px; padding: 14px 18px; max-width: 1560px; width: 100%; margin: 0 auto;
+  }
+  @media (max-width: 1180px) { .main-grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  }
+  .panel-title { font-size: 13px; font-weight: 700; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+  .muted { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+  /* 场景与意图卡 */
+  .scenario-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: .18s;
+  }
+  .scenario-card:hover { border-color: var(--indigo); }
+  .scenario-card.active { border-color: var(--cyan); background: linear-gradient(145deg, rgba(56,189,248,.14), rgba(99,102,241,.08)); }
+  .scenario-card h3 { margin: 0 0 4px; font-size: 13px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 11px; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--border); background: #0c1324; color: #cbd5e1; cursor: pointer; transition: .16s;
+  }
+  .chip:hover { border-color: var(--amber); color: #fff; }
+  .chip.on { background: rgba(251,191,36,.18); border-color: var(--amber); color: var(--amber); font-weight: 600; }
+
+  textarea, input[type="text"] {
+    width: 100%; background: #0a1020; border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 9px 11px; font-size: 13px; font-family: inherit;
+  }
+  textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--cyan); }
+
+  /* 空间实验画布 */
+  .stage-box { position: relative; min-height: 540px; overflow: hidden; }
+  .hud-strip {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 10px;
+    background: #0a1020; border: 1px solid var(--border); font-size: 12px;
+  }
+  .state-pill { padding: 3px 9px; border-radius: 999px; font-weight: 700; font-size: 11px; }
+  .st-idle { background: rgba(148,163,184,.16); color: #cbd5e1; }
+  .st-running { background: rgba(56,189,248,.18); color: var(--cyan); animation: glow 1.4s infinite alternate; }
+  .st-paused { background: rgba(251,191,36,.2); color: var(--amber); }
+  .st-takeover { background: rgba(129,140,248,.22); color: var(--indigo); }
+  .st-done { background: rgba(52,211,153,.2); color: var(--emerald); }
+  @keyframes glow { from { box-shadow: 0 0 4px rgba(56,189,248,.2); } to { box-shadow: 0 0 14px rgba(56,189,248,.55); } }
+
+  .nodes-track { display: flex; flex-direction: column; gap: 12px; position: relative; padding: 6px 2px; }
+  .node-card {
+    position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+    transition: transform .22s cubic-bezier(.2,.8,.2,1), border-color .22s, box-shadow .22s;
+  }
+  .node-card.running { border-color: var(--cyan); box-shadow: 0 0 22px rgba(56,189,248,.22); transform: translateX(4px); }
+  .node-card.done { border-color: rgba(52,211,153,.55); }
+  .node-card.replanned { border-color: var(--amber); box-shadow: 0 0 18px rgba(251,191,36,.18); }
+  .node-card.takeover { border-color: var(--indigo); box-shadow: 0 0 22px rgba(129,140,248,.28); }
+  .node-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .node-idx { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: #0c1324; border: 1px solid var(--border); margin-right: 6px; }
+  .node-card.done .node-idx { background: var(--emerald); color: #041d14; border-color: var(--emerald); }
+  .node-card.running .node-idx { background: var(--cyan); color: #041322; border-color: var(--cyan); }
+  .node-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .node-body { margin-top: 8px; font-size: 12.5px; color: #dbeafe; line-height: 1.55; white-space: pre-wrap; }
+  .progress-bar { height: 4px; background: #0b1020; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--indigo)); transition: width .12s linear; }
+
+  /* 分叉对比容器 */
+  .branch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .branch-opt { background: #0b1122; border: 1px solid var(--border); border-radius: 10px; padding: 10px; cursor: pointer; transition: .16s; }
+  .branch-opt:hover { border-color: var(--cyan); }
+  .branch-opt.chosen { border-color: var(--emerald); background: rgba(52,211,153,.09); }
+
+  /* 传统线性聊天对照组 */
+  .chat-box { display: none; flex-direction: column; gap: 10px; flex: 1; max-height: 500px; overflow-y: auto; padding: 6px; background: #090e1c; border-radius: 10px; border: 1px solid var(--border); }
+  .chat-msg { padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.55; max-width: 90%; white-space: pre-wrap; }
+  .chat-user { align-self: flex-end; background: #1d4ed8; color: #fff; }
+  .chat-ai { align-self: flex-start; background: var(--card); border: 1px solid var(--border); color: var(--text); }
+
+  /* 右侧接管与遥测面板 */
+  .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric { background: #0a1020; border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; }
+  .metric .v { font-size: 18px; font-weight: 700; color: var(--cyan); }
+  .metric .k { font-size: 11px; color: var(--muted); }
+  .log-list { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #a5b4fc; background: #080c18; border: 1px solid var(--border); border-radius: 9px; padding: 9px; max-height: 170px; overflow-y: auto; line-height: 1.6; }
+  .takeover-box { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.45); border-radius: 10px; padding: 10px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="pulse-dot" id="hud-dot"></span>
+    <div>
+      <h1>Agent UI 交互实验室 · Spatial Co-Pilot Prototype</h1>
+      <small>实验命题：人如何在 Agent 执行中途自然地「补充约束、打断急停、接管编辑、分叉比选」</small>
+    </div>
+  </div>
+
+  <div class="controls-group">
+    <div class="seg" title="切换交互范式做A/B试用对比">
+      <button id="mode-spatial" class="active" onclick="setMode('spatial')">✦ 空间直操画布（实验组）</button>
+      <button id="mode-chat" onclick="setMode('chat')">💬 传统线形聊天（对照组）</button>
+    </div>
+    <button class="btn" id="sound-toggle" onclick="toggleSound()">🔊 触感音效：开</button>
+    <button class="btn btn-go" id="btn-run" onclick="startExecution()">▶ 启动协作</button>
+    <button class="btn btn-warn" id="btn-pause" onclick="togglePause()">⏸ 暂停 / Space急停</button>
+    <button class="btn" onclick="resetWorkspace()">↺ 重置</button>
+    <a class="btn" href="../../" style="text-decoration:none">← 工具箱官网</a>
+  </div>
+</header>
+
+<div class="main-grid">
+  <!-- 左栏：场景与动态约束 -->
+  <aside class="panel">
+    <div class="panel-title">1. 选择测试场景 <span class="muted">3 套真实任务</span></div>
+    <div id="scenario-list" style="display:flex;flex-direction:column;gap:8px"></div>
+
+    <div class="panel-title" style="margin-top:4px">2. 表达你的意图</div>
+    <textarea id="intent-input" rows="3"></textarea>
+
+    <div class="panel-title" style="margin-top:4px">3. 执行中动态补充约束 <span class="muted">随时点击注入</span></div>
+    <div class="chip-row" id="constraint-chips"></div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="custom-constraint" placeholder="自定义临时补充，如：优先周五前出稿" />
+      <button class="btn btn-warn" onclick="injectCustomConstraint()">+注入</button>
+    </div>
+    <div class="muted">💡 <b>实验提示</b>：启动后无需等待结束，随时按 <code>Space</code> 暂停、点约束芯片重规划后续节点，或点击任意节点「✋ 接管编辑」。</div>
+  </aside>
+
+  <!-- 中栏：核心实验舞台 -->
+  <main class="panel stage-box">
+    <div class="hud-strip">
+      <div>状态：<span class="state-pill st-idle" id="state-badge">待命 Ready</span></div>
+      <div id="active-constraints-label" class="muted">当前约束：默认策略</div>
+    </div>
+
+    <!-- 实验组：空间直操画布 -->
+    <div id="spatial-view" class="nodes-track"></div>
+
+    <!-- 对照组：传统线形聊天 -->
+    <div id="chat-view" class="chat-box"></div>
+  </main>
+
+  <!-- 右栏：人类接管工作区 + 实验对比遥测 -->
+  <aside class="panel">
+    <div class="panel-title">4. 人类接管 & 直操区</div>
+    <div id="takeover-empty" class="muted" style="padding:14px;background:#0a1020;border:1px dashed var(--border);border-radius:10px">
+      在中间画布点击任意节点的 <b>「✋ 接管编辑」</b>，Agent 会立即挂起下游并把半成品交给你直接修改，改完交还即可继续推进。
+    </div>
+    <div id="takeover-editor" class="takeover-box hidden">
+      <div class="panel-title" style="margin-bottom:6px">正在接管：<span id="takeover-node-title" style="color:var(--indigo)"></span></div>
+      <textarea id="takeover-textarea" rows="6"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-ok" style="flex:1" onclick="commitTakeover()">✓ 保存接管结果并交还 Agent 继续</button>
+        <button class="btn" onclick="cancelTakeover()">取消</button>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px">5. 交互实验对比遥测</div>
+    <div class="telemetry">
+      <div class="metric"><div class="v" id="m-interventions">0</div><div class="k">中途成功干预次数</div></div>
+      <div class="metric"><div class="v" id="m-replans">0</div><div class="k">动态重规划次数</div></div>
+      <div class="metric"><div class="v" id="m-takeovers">0</div><div class="k">人机接管编辑次数</div></div>
+      <div class="metric"><div class="v" id="m-mode">空间直操</div><div class="k">当前实验范式</div></div>
+    </div>
+
+    <div class="panel-title" style="margin-top:4px">6. 实时事件脉冲日志</div>
+    <div class="log-list" id="event-log">等待用户发起意图...</div>
+  </aside>
+</div>
+
+<script>
+const SCENARIOS = {
+  contract: {
+    id: "contract",
+    title: "商业合同条款风控审阅",
+    desc: "扫描采购协议 → 识别违约与IP陷阱 → 生成对等修改 → 导出法务批注",
+    defaultIntent: "帮我审阅这份 38 页供应商软件采购协议，重点标出不对等违约金和知识产权归属条款，并给出可发给对方的修改措辞。",
+    constraints: ["仅保留温和商务措辞", "知识产权必须 100% 归我方", "违约赔付上限封顶合同额 20%", "优先 24h 内可签版本"],
+    steps: [
+      { title: "条款结构扫描与风险锚定", output: "已提取 14 项核心义务条款，锁定第 7.3 条（单方无限违约金）与第 11.2 条（定制源码归属模糊）为高危项。" },
+      { title: "对等修改方案起草（支持分叉对比）", branchable: true,
+        output: "已生成对等修改建议：明确定制交付物知识产权自付款节点起归我方独占；双方违约责任上限对等设为合同总额 20%。",
+        branchA: "【Route A · 稳健商务版】保留部分通用框架授权，源码归我方所有，措辞柔和以促成今日签约。",
+        branchB: "【Route B · 强硬风控版】全部源码与衍生专利归我方，增加 7 日修复 SLA 与双倍延迟扣款。" },
+      { title: "交叉核验付款与验收里程碑", output: "已校验第 4.1 条：将一次性 80% 预付调整为 40% 启动 + 30% UAT 验收 + 30% 终验。" },
+      { title: "生成带批注的法务回复邮件", output: "已整理 4 条 Redline 修改摘要与温和解释邮件，等待你最终确认后导出。" }
+    ]
+  },
+  data_ops: {
+    id: "data_ops",
+    title: "多表异常数据定位与核查",
+    desc: "读取 3 份月度账表 → 定位跨表重复发票与负利润 → 生成复核清单",
+    defaultIntent: "核对 11 月市场、技术、行政三份报销表，找出跨部门重复发票、超标住宿以及没有发票号的异常单据。",
+    constraints: ["住宿超 500 元即标红", "忽略 10 元以内零星差额", "按部门单独导出明细", "附带财务催补票话术"],
+    steps: [
+      { title: "多源编码解析与字段对齐", output: "已统一 UTF-8/GBK 三份 CSV 表头（共 142 条明细），金额字段已清洗货币符号。" },
+      { title: "跨表发票号查重与异常扫描", branchable: true,
+        output: "拦截 3 组跨部门重复发票号（INV-2026-8812 等），标记 2 条缺票无凭证记录及 1 条金额负数。",
+        branchA: "【Route A · 仅标红提醒】保留异常行在总表并增加 Warning 列，方便业务自查。",
+        branchB: "【Route B · 严格隔离出账】将异常行自动剥离进《异常隔离表》，总表只留合规可入账金额。" },
+      { title: "生成各部门费用结构汇总", output: "技术部 ¥48,210 / 市场部 ¥31,900 / 行政部 ¥12,450，已计算环比偏差。" },
+      { title: "输出待复核清单与催办草稿", output: "已生成 3 位报销人的温和补票确认草稿，等待确认。" }
+    ]
+  },
+  launch: {
+    id: "launch",
+    title: "产品上线排期与阻塞协调",
+    desc: "汇总研发/测试阻塞 → 重排关键路径 → 起草同步公告 → 锁定发布表",
+    defaultIntent: "距离周五发版还有 72 小时，梳理当前后端接口延迟和移动端 UI 阻塞项，给出保底上线裁剪方案。",
+    constraints: ["周五 18:00 死线不可延后", "允许非核心报表延后至 V1.1", "必须保留灰度回滚开关", "同步给老板看一页摘要"],
+    steps: [
+      { title: "收集当前研发与 QA 阻塞状态", output: "识别 2 个 P0 阻塞：支付回调幂等未压测、iOS 暗黑模式图表截断。" },
+      { title: "关键路径裁剪与方案推演", branchable: true,
+        output: "建议将非核心数据看板推迟 3 天，全力保底主交易链路按期发版。",
+        branchA: "【Route A · 裁剪范围保死线】砍掉次要报表模块，100% 保证周五 18:00 稳定上线。",
+        branchB: "【Route B · 延后 48h 全量发】保留全部功能，但需申请周日凌晨上线窗口。" },
+      { title: "自动生成灰度与回滚检查表", output: "已生成 12 项 Pre-flight 检查清单，含 Feature Flag 一键降级步骤。" },
+      { title: "输出团队同步消息与高层简报", output: "已完成给研发群的排期调整通知与给管理层的 3 行结论简报。" }
+    ]
+  }
+};
+
+let state = {
+  mode: "spatial",
+  soundOn: true,
+  scenarioId: "contract",
+  status: "idle", // idle | running | paused | takeover | done
+  currentIdx: -1,
+  progress: 0,
+  timer: null,
+  activeConstraints: [],
+  nodes: [],
+  takeoverIdx: -1,
+  metrics: { interventions: 0, replans: 0, takeovers: 0 }
+};
+
+// --- Web Audio 触感微音效合成器（零外部音频文件） ---
+let audioCtx = null;
+function playTone(type) {
+  if (!state.soundOn) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    const profiles = {
+      start:   { f1: 420, f2: 660, dur: 0.12, wave: "sine", vol: 0.08 },
+      step:    { f1: 540, f2: 720, dur: 0.08, wave: "triangle", vol: 0.06 },
+      pause:   { f1: 360, f2: 210, dur: 0.14, wave: "sawtooth", vol: 0.05 },
+      replan:  { f1: 480, f2: 880, dur: 0.14, wave: "sine", vol: 0.07 },
+      takeover:{ f1: 300, f2: 450, dur: 0.10, wave: "triangle", vol: 0.07 },
+      done:    { f1: 523, f2: 1046, dur: 0.22, wave: "sine", vol: 0.09 }
+    };
+    const p = profiles[type] || profiles.step;
+    osc.type = p.wave;
+    osc.frequency.setValueAtTime(p.f1, now);
+    osc.frequency.exponentialRampToValueAtTime(p.f2, now + p.dur);
+    gain.gain.setValueAtTime(p.vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + p.dur);
+    osc.start(now); osc.stop(now + p.dur + 0.02);
+  } catch (_) {}
+}
+
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  document.getElementById("sound-toggle").textContent = state.soundOn ? "🔊 触感音效：开" : "🔇 触感音效：关";
+  if (state.soundOn) playTone("step");
+}
+
+function logEvent(msg) {
+  const el = document.getElementById("event-log");
+  const t = new Date().toTimeString().slice(0, 8);
+  el.innerHTML = `[${t}] ${esc(msg)}<br>` + el.innerHTML;
+}
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function loadScenario(id) {
+  clearInterval(state.timer);
+  state.scenarioId = id;
+  const sc = SCENARIOS[id];
+  state.status = "idle";
+  state.currentIdx = -1;
+  state.progress = 0;
+  state.activeConstraints = [];
+  state.takeoverIdx = -1;
+  state.nodes = sc.steps.map((s, idx) => ({
+    idx, title: s.title, output: s.output, branchable: !!s.branchable,
+    branchA: s.branchA || "", branchB: s.branchB || "", chosenBranch: "",
+    status: "pending", replanned: false, pct: 0, editedByHuman: false
+  }));
+  document.getElementById("intent-input").value = sc.defaultIntent;
+  document.getElementById("takeover-editor").classList.add("hidden");
+  document.getElementById("takeover-empty").classList.remove("hidden");
+  renderScenarios();
+  renderConstraints();
+  renderStage();
+  updateHUD();
+  logEvent(`已加载场景：${sc.title}`);
+}
+
+function resetWorkspace() {
+  playTone("pause");
+  loadScenario(state.scenarioId);
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById("mode-spatial").classList.toggle("active", mode === "spatial");
+  document.getElementById("mode-chat").classList.toggle("active", mode === "chat");
+  document.getElementById("m-mode").textContent = mode === "spatial" ? "空间直操" : "传统聊天";
+  playTone("step");
+  renderStage();
+  logEvent(`切换实验范式 → ${mode === "spatial" ? "空间直操画布（实验组）" : "传统线形聊天（对照组）"}`);
+}
+
+function renderScenarios() {
+  document.getElementById("scenario-list").innerHTML = Object.values(SCENARIOS).map(sc => `
+    <div class="scenario-card ${sc.id === state.scenarioId ? 'active' : ''}" onclick="loadScenario('${sc.id}')">
+      <h3>${esc(sc.title)}</h3>
+      <div class="muted">${esc(sc.desc)}</div>
+    </div>
+  `).join("");
+}
+
+function renderConstraints() {
+  const sc = SCENARIOS[state.scenarioId];
+  const all = Array.from(new Set([...sc.constraints, ...state.activeConstraints]));
+  document.getElementById("constraint-chips").innerHTML = all.map(c => {
+    const on = state.activeConstraints.includes(c);
+    return `<span class="chip ${on ? 'on' : ''}" onclick="toggleConstraint('${esc(c)}')">${on ? '✓ ' : '+ '}${esc(c)}</span>`;
+  }).join("");
+  document.getElementById("active-constraints-label").textContent =
+    state.activeConstraints.length ? `生效约束：${state.activeConstraints.join(" ｜ ")}` : "当前约束：默认策略";
+}
+
+function toggleConstraint(c) {
+  const exists = state.activeConstraints.includes(c);
+  if (exists) {
+    state.activeConstraints = state.activeConstraints.filter(x => x !== c);
+  } else {
+    state.activeConstraints.push(c);
+    applyDynamicReplan(c);
+  }
+  renderConstraints();
+}
+
+function injectCustomConstraint() {
+  const inp = document.getElementById("custom-constraint");
+  const val = inp.value.trim();
+  if (!val) return;
+  if (!state.activeConstraints.includes(val)) {
+    state.activeConstraints.push(val);
+    applyDynamicReplan(val);
+  }
+  inp.value = "";
+  renderConstraints();
+}
+
+function applyDynamicReplan(constraintText) {
+  playTone("replan");
+  state.metrics.interventions += 1;
+  state.metrics.replans += 1;
+  let changed = 0;
+  state.nodes.forEach((n, i) => {
+    if (n.status === "pending" || i === state.currentIdx) {
+      n.replanned = true;
+      if (!n.output.includes(constraintText)) {
+        n.output += `\n⚡ [已按新增约束实时重规划] 融入「${constraintText}」校验规则。`;
+      }
+      changed += 1;
+    }
+  });
+  logEvent(`动态注入约束「${constraintText}」→ 实时重规划 ${changed} 个节点`);
+  updateHUD();
+  renderStage();
+}
+
+function startExecution() {
+  if (state.status === "running") return;
+  if (state.status === "done") loadScenario(state.scenarioId);
+  if (state.currentIdx < 0) state.currentIdx = 0;
+  state.status = "running";
+  playTone("start");
+  logEvent("Agent 开始执行，支持随时 Space 急停 / 补充约束 / 点击节点接管");
+  runTickLoop();
+  updateHUD();
+  renderStage();
+}
+
+function togglePause() {
+  if (state.status === "running") {
+    clearInterval(state.timer);
+    state.status = "paused";
+    state.metrics.interventions += 1;
+    playTone("pause");
+    logEvent("⏸ 用户触发急停暂停，等待补充指令或单步接管");
+  } else if (state.status === "paused") {
+    state.status = "running";
+    playTone("start");
+    logEvent("▶ 用户解除暂停，Agent 继续从断点推进");
+    runTickLoop();
+  }
+  updateHUD();
+  renderStage();
+}
+
+function runTickLoop() {
+  clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    if (state.status !== "running") { clearInterval(state.timer); return; }
+    const node = state.nodes[state.currentIdx];
+    if (!node) {
+      clearInterval(state.timer);
+      state.status = "done";
+      playTone("done");
+      logEvent("✅ 全部节点协作完成！");
+      updateHUD(); renderStage();
+      return;
+    }
+    node.status = "running";
+    node.pct = Math.min(100, node.pct + 10);
+    if (node.pct >= 100) {
+      node.status = "done";
+      playTone("step");
+      logEvent(`完成步骤 ${node.idx + 1}：${node.title}`);
+      state.currentIdx += 1;
+      if (state.currentIdx >= state.nodes.length) {
+        clearInterval(state.timer);
+        state.status = "done";
+        playTone("done");
+        logEvent("✅ 全部节点协作完成！");
+      }
+    }
+    updateHUD();
+    renderStage();
+  }, 140);
+}
+
+function openTakeover(idx) {
+  clearInterval(state.timer);
+  state.status = "takeover";
+  state.takeoverIdx = idx;
+  state.metrics.interventions += 1;
+  state.metrics.takeovers += 1;
+  const node = state.nodes[idx];
+  node.status = "takeover";
+  playTone("takeover");
+  document.getElementById("takeover-empty").classList.add("hidden");
+  document.getElementById("takeover-editor").classList.remove("hidden");
+  document.getElementById("takeover-node-title").textContent = `步骤 ${idx + 1} · ${node.title}`;
+  document.getElementById("takeover-textarea").value = node.output;
+  logEvent(`✋ 人类接管步骤 ${idx + 1}，下游节点已自动挂起`);
+  updateHUD();
+  renderStage();
+}
+
+function commitTakeover() {
+  if (state.takeoverIdx < 0) return;
+  const node = state.nodes[state.takeoverIdx];
+  node.output = document.getElementById("takeover-textarea").value.trim() || node.output;
+  node.status = "done";
+  node.pct = 100;
+  node.editedByHuman = true;
+  if (state.currentIdx <= state.takeoverIdx) state.currentIdx = state.takeoverIdx + 1;
+  document.getElementById("takeover-editor").classList.add("hidden");
+  document.getElementById("takeover-empty").classList.remove("hidden");
+  logEvent(`✓ 人类修改已写入步骤 ${node.idx + 1}，交还 Agent 继续下游`);
+  state.takeoverIdx = -1;
+  state.status = state.currentIdx >= state.nodes.length ? "done" : "running";
+  playTone("start");
+  if (state.status === "running") runTickLoop();
+  updateHUD();
+  renderStage();
+}
+
+function cancelTakeover() {
+  if (state.takeoverIdx >= 0) {
+    state.nodes[state.takeoverIdx].status = "paused";
+  }
+  state.takeoverIdx = -1;
+  state.status = "paused";
+  document.getElementById("takeover-editor").classList.add("hidden");
+  document.getElementById("takeover-empty").classList.remove("hidden");
+  updateHUD();
+  renderStage();
+}
+
+function chooseBranch(idx, choice) {
+  const n = state.nodes[idx];
+  n.chosenBranch = choice;
+  n.output = choice === "A" ? n.branchA : n.branchB;
+  state.metrics.interventions += 1;
+  playTone("replan");
+  logEvent(`⑂ 步骤 ${idx + 1} 已人工锁定分支 Route ${choice}`);
+  updateHUD();
+  renderStage();
+}
+
+function updateHUD() {
+  const badge = document.getElementById("state-badge");
+  const map = {
+    idle: ["st-idle", "待命 Ready"],
+    running: ["st-running", "执行中 · 可随时打断/补充"],
+    paused: ["st-paused", "已急停暂停 · 等待人类指令"],
+    takeover: ["st-takeover", "人类接管直操中"],
+    done: ["st-done", "协作完成 Completed"]
+  };
+  const [cls, txt] = map[state.status] || map.idle;
+  badge.className = `state-pill ${cls}`;
+  badge.textContent = txt;
+  document.getElementById("m-interventions").textContent = state.metrics.interventions;
+  document.getElementById("m-replans").textContent = state.metrics.replans;
+  document.getElementById("m-takeovers").textContent = state.metrics.takeovers;
+}
+
+function renderStage() {
+  const spatialEl = document.getElementById("spatial-view");
+  const chatEl = document.getElementById("chat-view");
+
+  if (state.mode === "spatial") {
+    spatialEl.style.display = "flex";
+    chatEl.style.display = "none";
+    spatialEl.innerHTML = state.nodes.map(n => {
+      const cls = [
+        "node-card",
+        n.status === "running" ? "running" : "",
+        n.status === "done" ? "done" : "",
+        n.replanned ? "replanned" : "",
+        n.status === "takeover" ? "takeover" : ""
+      ].join(" ");
+      const branchHtml = n.branchable ? `
+        <div class="branch-grid">
+          <div class="branch-opt ${n.chosenBranch === 'A' ? 'chosen' : ''}" onclick="chooseBranch(${n.idx}, 'A')">
+            <div style="font-weight:700;font-size:12px;color:var(--cyan)">⑂ 分支 A · 稳健优先</div>
+            <div class="muted">${esc(n.branchA)}</div>
+          </div>
+          <div class="branch-opt ${n.chosenBranch === 'B' ? 'chosen' : ''}" onclick="chooseBranch(${n.idx}, 'B')">
+            <div style="font-weight:700;font-size:12px;color:var(--amber)">⑂ 分支 B · 强约束优先</div>
+            <div class="muted">${esc(n.branchB)}</div>
+          </div>
+        </div>
+      ` : "";
+      return `
+        <div class="${cls}">
+          <div class="node-head">
+            <div>
+              <span class="node-idx">${n.idx + 1}</span>
+              <b>${esc(n.title)}</b>
+              ${n.editedByHuman ? '<span class="chip on" style="margin-left:6px">人类已改写</span>' : ''}
+              ${n.replanned ? '<span class="chip on" style="margin-left:6px">已重规划</span>' : ''}
+            </div>
+            <div class="node-actions">
+              <button class="btn" onclick="openTakeover(${n.idx})">✋ 接管编辑</button>
+            </div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${n.pct}%"></div></div>
+          <div class="node-body">${n.status === 'pending' ? '<span class="muted">等待上游完成（现在仍可点击右侧约束或提前接管）</span>' : esc(n.output)}</div>
+          ${branchHtml}
+        </div>
+      `;
+    }).join("");
+  } else {
+    spatialEl.style.display = "none";
+    chatEl.style.display = "flex";
+    const intent = document.getElementById("intent-input").value;
+    const doneSteps = state.nodes.filter(n => n.status === "done" || n.status === "running");
+    let msgs = `<div class="chat-msg chat-user">${esc(intent)}</div>`;
+    if (!doneSteps.length) {
+      msgs += `<div class="chat-msg chat-ai muted">（对照组提示）传统聊天框模式下，你点击「启动协作」后只能线性等待文本逐段刷出，无法直接点选中间节点重规划或原地接管修改产物。</div>`;
+    } else {
+      msgs += doneSteps.map(n => `<div class="chat-msg chat-ai"><b>[${n.idx + 1}. ${esc(n.title)}]</b>\n${esc(n.output)}</div>`).join("");
+    }
+    chatEl.innerHTML = msgs;
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && !["TEXTAREA", "INPUT"].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    togglePause();
+  }
+});
+
+loadScenario("contract");
+</script>
+</body>
+</html>

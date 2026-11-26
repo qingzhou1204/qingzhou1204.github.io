@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Markdown 笔记转 Anki 卡片离线转换器</title>
+  <style>
+    :root { --bg:#080d1a; --panel:#11192e; --card:#17223d; --border:#27365c; --text:#e8eefc; --muted:#94a3c7; --cyan:#38bdf8; --ok:#34d399; --warn:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:14px 22px; background:#0c1324; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .btn { border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:8px; padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary { background:linear-gradient(135deg,#0284c7,#38bdf8); color:#041423; border:0; }
+    .wrap { max-width:1240px; margin:0 auto; padding:20px; display:grid; grid-template-columns:1fr 1.15fr; gap:16px; }
+    @media(max-width:960px){ .wrap{ grid-template-columns:1fr; } }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    textarea { width:100%; min-height:360px; background:#0a1020; border:1px solid var(--border); color:var(--text); border-radius:9px; padding:12px; font-family:ui-monospace,Consolas,monospace; font-size:13px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border); vertical-align:top; }
+    th { color:var(--muted); font-size:12px; }
+    .tag { display:inline-block; padding:2px 7px; border-radius:999px; font-size:11px; background:rgba(56,189,248,.14); color:var(--cyan); }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <strong style="font-size:16px">Markdown 笔记 → Anki 卡片离线转换器</strong>
+    <span style="font-size:12px;color:var(--muted);margin-left:10px">层级标签自动生成 · 跨笔记去重 · 标准 UTF-8 TSV 导出</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="document.getElementById('md-in').click()">📂 导入多个 .md 笔记</button>
+    <button class="btn" onclick="loadSample()">🧪 加载学习笔记样例</button>
+    <a class="btn" href="../../">← 返回工具箱官网</a>
+    <input type="file" id="md-in" accept=".md,.markdown,.txt" multiple style="display:none" />
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="panel">
+    <h3 style="margin:0 0 8px;font-size:15px">输入 Markdown 笔记（支持 Q:/A: 与 **概念**: 解释）</h3>
+    <textarea id="md-text"></textarea>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button class="btn btn-primary" onclick="convertNow()">▶ 解析并去重生成卡片</button>
+      <button class="btn" onclick="downloadTsv()">⬇ 导出 anki_cards.tsv</button>
+    </div>
+  </section>
+
+  <section class="panel" style="overflow-x:auto">
+    <h3 style="margin:0 0 8px;font-size:15px">预览 Anki 卡片与去重统计</h3>
+    <div id="stats" style="font-size:13px;color:var(--ok);margin-bottom:8px"></div>
+    <table>
+      <thead><tr><th>正面 (Front)</th><th>背面 (Back)</th><th>层级标签 (Tags)</th></tr></thead>
+      <tbody id="cards-tb"></tbody>
+    </table>
+  </section>
+</div>
+
+<script>
+let CARDS = [];
+let DUP_COUNT = 0;
+
+function parseMarkdownToAnki(mdText) {
+  const lines = String(mdText || "").split(/\r?\n/);
+  let h1 = "笔记", h2 = "";
+  const cards = [];
+  const seen = new Set();
+  let dups = 0;
+  let pendingQ = null;
+
+  function cleanTag(s) {
+    return String(s || "").replace(/[^\w\u4e00-\u9fff-]+/g, "_").replace(/^_+|_+$/g, "") || "未分类";
+  }
+
+  function pushCard(front, back) {
+    const f = front.trim(), b = back.trim();
+    if (!f || !b) return;
+    const key = f.toLowerCase();
+    if (seen.has(key)) { dups += 1; return; }
+    seen.add(key);
+    const tag = h2 ? `${cleanTag(h1)}::${cleanTag(h2)}` : cleanTag(h1);
+    cards.push({ front: f, back: b, tag });
+  }
+
+  for (const raw of lines) {
+    const ln = raw.trim();
+    if (ln.startsWith("# ")) {
+      if (pendingQ) { pushCard(pendingQ.q, pendingQ.a.join("<br>")); pendingQ = null; }
+      h1 = ln.slice(2).trim(); h2 = ""; continue;
+    }
+    if (ln.startsWith("## ")) {
+      if (pendingQ) { pushCard(pendingQ.q, pendingQ.a.join("<br>")); pendingQ = null; }
+      h2 = ln.slice(3).trim(); continue;
+    }
+    const qMatch = ln.match(/^Q\s*[:：]\s*(.+)$/i);
+    if (qMatch) {
+      if (pendingQ) pushCard(pendingQ.q, pendingQ.a.join("<br>"));
+      pendingQ = { q: qMatch[1], a: [] };
+      continue;
+    }
+    const aMatch = ln.match(/^A\s*[:：]\s*(.+)$/i);
+    if (aMatch && pendingQ) {
+      pendingQ.a.push(aMatch[1]);
+      continue;
+    }
+    if (pendingQ) {
+      if (!ln) { pushCard(pendingQ.q, pendingQ.a.join("<br>")); pendingQ = null; }
+      else { pendingQ.a.push(ln); }
+      continue;
+    }
+    const cMatch = ln.match(/^(?:[-*]\s*)?\*\*(.+?)\*\*\s*[:：]\s*(.+)$/);
+    if (cMatch) {
+      pushCard(cMatch[1], cMatch[2]);
+    }
+  }
+  if (pendingQ) pushCard(pendingQ.q, pendingQ.a.join("<br>"));
+
+  CARDS = cards; DUP_COUNT = dups;
+  return { cards, dups };
+}
+
+function esc(s) { return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function convertNow() {
+  const { cards, dups } = parseMarkdownToAnki(document.getElementById("md-text").value);
+  document.getElementById("stats").textContent = `已生成 ${cards.length} 张有效 Anki 卡片 | 自动拦截 ${dups} 条重复知识点`;
+  document.getElementById("cards-tb").innerHTML = cards.map(c =>
+    `<tr><td><b>${esc(c.front)}</b></td><td>${esc(c.back)}</td><td><span class="tag">${esc(c.tag)}</span></td></tr>`
+  ).join("");
+}
+
+function downloadTsv() {
+  if (!CARDS.length) convertNow();
+  const header = "#separator:tab\n#html:true\n#tags column:3\n";
+  const body = CARDS.map(c => `${c.front.replace(/\t/g, " ")}\t${c.back.replace(/\t/g, " ")}\t${c.tag}`).join("\n");
+  const blob = new Blob([header + body], { type: "text/tab-separated-values;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "anki_cards.tsv";
+  a.click();
+}
+
+document.getElementById("md-in").addEventListener("change", async e => {
+  const parts = [];
+  for (const f of e.target.files) parts.push(await f.text());
+  document.getElementById("md-text").value = parts.join("\n\n");
+  convertNow();
+});
+
+function loadSample() {
+  document.getElementById("md-text").value = [
+    "# Python核心概念",
+    "## 并发与异步",
+    "- **GIL (全局解释器锁)**: CPython 中限制同一时刻只有一个线程执行 Python 字节码的互斥锁。",
+    "Q: asyncio.gather 和 asyncio.wait 的核心区别是什么？",
+    "A: gather 按传入顺序返回结果列表且默认遇到异常立即抛出；wait 返回 (done, pending) 两个集合，适合精细控制超时。",
+    "",
+    "# 微观经济学",
+    "## 消费者行为",
+    "- **边际效用递减规律**: 在一定时间内，随着消费某种商品数量增加，每增加一单位所带来的额外满足感递减。",
+    "Q: asyncio.gather 和 asyncio.wait 的核心区别是什么？",
+    "A: 重复条目测试，应被自动去重拦截。"
+  ].join("\n");
+  convertNow();
+}
+loadSample();
+</script>
+</body>
+</html>

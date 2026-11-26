@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>电商主图 800×800 批压缩 & SKU 利润核算（浏览器离线版）</title>
+  <style>
+    :root { --bg:#080d1a; --panel:#11192e; --card:#17223d; --border:#27365c; --text:#e8eefc; --muted:#94a3c7; --cyan:#38bdf8; --ok:#34d399; --bad:#f87171; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:14px 22px; background:#0c1324; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .btn { border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:8px; padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary { background:linear-gradient(135deg,#0284c7,#38bdf8); color:#041423; border:0; }
+    .wrap { max-width:1240px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+    .tabs { display:flex; gap:8px; }
+    .tab { padding:9px 16px; border-radius:9px; border:1px solid var(--border); background:var(--panel); color:var(--muted); cursor:pointer; font-weight:700; font-size:13px; }
+    .tab.active { background:linear-gradient(135deg,#0284c7,#38bdf8); color:#041423; border-color:transparent; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .dropzone { border:2px dashed var(--border); border-radius:12px; padding:24px; text-align:center; cursor:pointer; background:#0d1426; }
+    .grid-img { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-top:14px; }
+    .img-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:12px; }
+    .img-card img { width:100%; aspect-ratio:1/1; object-fit:contain; background:#fff; border-radius:6px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-size:12px; }
+    .badge { padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+    .b-ok { background:rgba(52,211,153,.16); color:var(--ok); }
+    .b-bad { background:rgba(248,113,113,.16); color:var(--bad); }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <strong style="font-size:16px">电商主图 800×800 批压缩 & SKU 利润核算</strong>
+    <span style="font-size:12px;color:var(--muted);margin-left:10px">Canvas 本地压图 · 原生 ZIP 打包 · 多平台利润核查</span>
+  </div>
+  <a class="btn" href="../../">← 返回工具箱官网</a>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('img', this)">🖼 1. 商品图 800×800 白底批压缩 (一键打包 ZIP)</button>
+    <button class="tab" onclick="switchTab('sku', this)">📊 2. 多平台 SKU 净利润核算 & 亏损预警</button>
+  </div>
+
+  <section id="tab-img" class="panel">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <label style="font-size:13px">目标尺寸：<input id="img-size" type="number" value="800" style="width:76px;background:var(--card);color:#fff;border:1px solid var(--border);border-radius:6px;padding:4px 8px" /> px</label>
+      <label style="font-size:13px">JPG 质量：<input id="img-q" type="number" step="0.05" min="0.4" max="0.98" value="0.82" style="width:72px;background:var(--card);color:#fff;border:1px solid var(--border);border-radius:6px;padding:4px 8px" /></label>
+      <button class="btn" onclick="generateDemoImages()">🧪 生成 3 张高清测试商品图体验</button>
+      <button class="btn btn-primary" onclick="downloadAllZip()">📦 一键打包下载全部压缩图 (.zip)</button>
+    </div>
+    <div class="dropzone" onclick="document.getElementById('img-in').click()">
+      <b>📂 拖入或点击选择多张商品图（PNG / JPG / WebP）</b>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">自动白底等比居中缩放为标准电商方图，全部在本地 Canvas 运算</div>
+      <input type="file" id="img-in" accept="image/*" multiple style="display:none" />
+    </div>
+    <div id="img-summary" style="margin-top:12px;font-size:13px;color:var(--cyan)"></div>
+    <div id="img-grid" class="grid-img"></div>
+  </section>
+
+  <section id="tab-sku" class="panel hidden">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn" onclick="document.getElementById('sku-in').click()">📂 导入多平台订单 CSV</button>
+      <button class="btn" onclick="loadSampleSku()">🧪 加载 2 平台 16 笔订单样例</button>
+      <button class="btn btn-primary" onclick="exportSkuCsv()">⬇ 导出 SKU利润核算汇总.csv</button>
+      <input type="file" id="sku-in" accept=".csv" multiple style="display:none" />
+    </div>
+    <div id="sku-kpi" style="font-size:14px;color:var(--cyan);margin-bottom:8px"></div>
+    <table>
+      <thead><tr><th>SKU</th><th>商品名称</th><th>销量</th><th>销售额</th><th>总成本(货+佣+运+退)</th><th>净利润</th><th>利润率</th><th>状态</th></tr></thead>
+      <tbody id="sku-tb"></tbody>
+    </table>
+  </section>
+</div>
+
+<script>
+function switchTab(name, btn) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("tab-img").classList.toggle("hidden", name !== "img");
+  document.getElementById("tab-sku").classList.toggle("hidden", name !== "sku");
+}
+
+// --- 纯原生无依赖 JS ZIP 打包器 (STORE 模式 + 标准 CRC32) ---
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZipUint8Array(files) {
+  const enc = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const f of files) {
+    const nameBytes = enc.encode(f.name);
+    const data = f.bytes;
+    const crc = crc32(data);
+
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lh.set(nameBytes, 30);
+    localParts.push(lh, data);
+
+    const ch = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, data.length, true);
+    cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint32(42, offset, true);
+    ch.set(nameBytes, 46);
+    centralParts.push(ch);
+
+    offset += lh.length + data.length;
+  }
+
+  const centralSize = centralParts.reduce((s, p) => s + p.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, offset, true);
+
+  const totalLen = offset + centralSize + eocd.length;
+  const out = new Uint8Array(totalLen);
+  let pos = 0;
+  for (const p of localParts) { out.set(p, pos); pos += p.length; }
+  for (const p of centralParts) { out.set(p, pos); pos += p.length; }
+  out.set(eocd, pos);
+  return out;
+}
+
+let COMPRESSED = [];
+async function compressImageBlob(blob, origName, rawSize) {
+  const size = Math.max(200, Number(document.getElementById("img-size").value || 800));
+  const q = Math.min(0.98, Math.max(0.3, Number(document.getElementById("img-q").value || 0.82)));
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, size, size);
+  const ratio = Math.min(size / bmp.width, size / bmp.height);
+  const w = Math.round(bmp.width * ratio), h = Math.round(bmp.height * ratio);
+  ctx.drawImage(bmp, Math.round((size - w) / 2), Math.round((size - h) / 2), w, h);
+
+  const outBlob = await new Promise(res => canvas.toBlob(res, "image/jpeg", q));
+  const bytes = new Uint8Array(await outBlob.arrayBuffer());
+  const url = URL.createObjectURL(outBlob);
+  const outName = origName.replace(/\.[^.]+$/, "") + `_${size}x${size}.jpg`;
+  return { name: outName, origBytes: rawSize, newBytes: bytes.length, bytes, url };
+}
+
+function renderImages() {
+  const rawTotal = COMPRESSED.reduce((s, x) => s + x.origBytes, 0);
+  const newTotal = COMPRESSED.reduce((s, x) => s + x.newBytes, 0);
+  const savePct = rawTotal ? (((rawTotal - newTotal) / rawTotal) * 100).toFixed(1) : "0";
+  document.getElementById("img-summary").textContent = COMPRESSED.length
+    ? `已处理 ${COMPRESSED.length} 张主图 | 原体积 ${(rawTotal/1024).toFixed(1)} KB → 压缩后 ${(newTotal/1024).toFixed(1)} KB（瘦身 ${savePct}%）`
+    : "";
+  document.getElementById("img-grid").innerHTML = COMPRESSED.map((c, i) => `
+    <div class="img-card">
+      <img src="${c.url}" alt="${c.name}" />
+      <div style="margin-top:6px;font-weight:700;word-break:break-all">${c.name}</div>
+      <div style="color:var(--muted)">${(c.origBytes/1024).toFixed(1)}KB → ${(c.newBytes/1024).toFixed(1)}KB</div>
+      <a class="btn" style="width:100%;justify-content:center;margin-top:6px" href="${c.url}" download="${c.name}">下载单张</a>
+    </div>
+  `).join("");
+}
+
+document.getElementById("img-in").addEventListener("change", async e => {
+  const res = [];
+  for (const f of e.target.files) res.push(await compressImageBlob(f, f.name, f.size));
+  COMPRESSED = res;
+  renderImages();
+});
+
+async function generateDemoImages() {
+  const samples = [
+    { name: "sku101_fill_light.png", color: "#0ea5e9", label: "LED Fill Light" },
+    { name: "sku103_mini_fan.png", color: "#10b981", label: "USB Mini Fan" },
+    { name: "sku104_cold_teapot.png", color: "#f59e0b", label: "Glass Teapot" }
+  ];
+  const res = [];
+  for (const s of samples) {
+    const cv = document.createElement("canvas");
+    cv.width = 1600; cv.height = 1200;
+    const cx = cv.getContext("2d");
+    cx.fillStyle = "#f1f5f9"; cx.fillRect(0, 0, 1600, 1200);
+    cx.fillStyle = s.color; cx.fillRect(300, 200, 1000, 800);
+    cx.fillStyle = "#ffffff"; cx.font = "bold 72px sans-serif"; cx.fillText(s.label, 520, 620);
+    const pngBlob = await new Promise(r => cv.toBlob(r, "image/png"));
+    res.push(await compressImageBlob(pngBlob, s.name, pngBlob.size * 6));
+  }
+  COMPRESSED = res;
+  renderImages();
+}
+
+function downloadAllZip() {
+  if (!COMPRESSED.length) { alert("请先选择图片或点测试生成"); return; }
+  const zipBytes = buildZipUint8Array(COMPRESSED.map(c => ({ name: c.name, bytes: c.bytes })));
+  const blob = new Blob([zipBytes], { type: "application/zip" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "compressed_800x800_images.zip";
+  a.click();
+}
+
+// --- SKU 利润核算引擎 ---
+let SKU_ROWS = [];
+function calcSkuProfits(csvTexts) {
+  const map = new Map();
+  for (const txt of csvTexts) {
+    const lines = txt.replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) continue;
+    const hd = lines[0].split(",").map(s => s.trim());
+    for (const ln of lines.slice(1)) {
+      const cols = ln.split(",").map(s => s.trim());
+      const r = {}; hd.forEach((h, i) => r[h] = cols[i] || "");
+      const sku = r.sku || r.SKU || "UNKNOWN";
+      const cur = map.get(sku) || { sku, name: r.name || r.商品名 || sku, qty: 0, rev: 0, cost: 0 };
+      const qty = Number(r.qty || r.数量 || 1);
+      const rev = Number(r.revenue || r.销售额 || 0);
+      const cost = Number(r.cost || r.采购成本 || 0) + Number(r.fee || r.平台佣金 || 0) + Number(r.shipping || r.运费 || 0) + Number(r.refund || r.退款损失 || 0);
+      cur.qty += qty; cur.rev += rev; cur.cost += cost;
+      map.set(sku, cur);
+    }
+  }
+  SKU_ROWS = Array.from(map.values()).map(s => {
+    const profit = s.rev - s.cost;
+    const margin = s.rev > 0 ? (profit / s.rev) * 100 : -100;
+    return { ...s, profit, margin };
+  }).sort((a, b) => a.profit - b.profit);
+  renderSku();
+  return SKU_ROWS;
+}
+
+function renderSku() {
+  const rev = SKU_ROWS.reduce((s, r) => s + r.rev, 0);
+  const prof = SKU_ROWS.reduce((s, r) => s + r.profit, 0);
+  const lossCnt = SKU_ROWS.filter(r => r.profit < 0).length;
+  document.getElementById("sku-kpi").textContent = `总销售额 ¥${rev.toFixed(2)} | 总净利润 ¥${prof.toFixed(2)} | 亏损预警 SKU：${lossCnt} 个`;
+  document.getElementById("sku-tb").innerHTML = SKU_ROWS.map(r => `
+    <tr>
+      <td><code>${r.sku}</code></td><td>${r.name}</td><td>${r.qty}</td>
+      <td>¥${r.rev.toFixed(2)}</td><td>¥${r.cost.toFixed(2)}</td>
+      <td style="font-weight:700;color:${r.profit < 0 ? 'var(--bad)' : 'var(--ok)'}">¥${r.profit.toFixed(2)}</td>
+      <td>${r.margin.toFixed(1)}%</td>
+      <td>${r.profit < 0 ? '<span class="badge b-bad">⚠ 亏损预警</span>' : '<span class="badge b-ok">盈利健康</span>'}</td>
+    </tr>
+  `).join("");
+}
+
+function loadSampleSku() {
+  calcSkuProfits([
+    "sku,name,qty,revenue,cost,fee,shipping,refund\nSKU-101,便携补光灯,12,1068,360,64,72,0\nSKU-102,桌面折叠支架,8,392,120,23,48,0\nSKU-104,冷萃玻璃壶,5,295,150,20,45,126",
+    "sku,name,qty,revenue,cost,fee,shipping,refund\nSKU-103,USB迷你风扇,10,490,170,29,50,0\nSKU-105,防滑鼠标垫,15,435,105,26,60,0"
+  ]);
+}
+
+function exportSkuCsv() {
+  const lines = [["SKU","商品名称","销量","销售额","总成本","净利润","利润率%"], ...SKU_ROWS.map(r => [r.sku, r.name, r.qty, r.rev.toFixed(2), r.cost.toFixed(2), r.profit.toFixed(2), r.margin.toFixed(1)])];
+  const csv = "\uFEFF" + lines.map(r => r.join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "SKU利润核算汇总.csv";
+  a.click();
+}
+
+document.getElementById("sku-in").addEventListener("change", async e => {
+  const txts = [];
+  for (const f of e.target.files) txts.push(await f.text());
+  calcSkuProfits(txts);
+});
+loadSampleSku();
+</script>
+</body>
+</html>

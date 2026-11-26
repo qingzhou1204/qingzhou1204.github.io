@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>多表报销 / 发票 CSV 合并查重台（100% 浏览器离线）</title>
+  <style>
+    :root { --bg:#080d1a; --panel:#11192e; --card:#17223d; --border:#27365c; --text:#e8eefc; --muted:#94a3c7; --cyan:#38bdf8; --ok:#34d399; --bad:#f87171; --warn:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:14px 22px; background:#0c1324; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .btn { border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:8px; padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary { background:linear-gradient(135deg,#0284c7,#38bdf8); color:#041423; border:0; }
+    .btn-ok { background:rgba(52,211,153,.16); color:var(--ok); border-color:rgba(52,211,153,.4); }
+    .wrap { max-width:1240px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+    .dropzone { border:2px dashed var(--border); border-radius:14px; padding:26px; text-align:center; background:var(--panel); cursor:pointer; transition:.16s; }
+    .dropzone.drag { border-color:var(--cyan); background:rgba(56,189,248,.08); }
+    .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; }
+    .kpi { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .kpi .v { font-size:24px; font-weight:800; color:var(--cyan); }
+    .kpi .k { font-size:12px; color:var(--muted); }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-size:12px; }
+    .badge { padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+    .b-ok { background:rgba(52,211,153,.16); color:var(--ok); }
+    .b-bad { background:rgba(248,113,113,.16); color:var(--bad); }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <strong style="font-size:16px">多表报销 / 发票 CSV 合并查重台</strong>
+    <span style="font-size:12px;color:var(--muted);margin-left:10px">100% 本地解析 · 支持 UTF-8 & GBK · 零数据上传</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="loadSample()">🧪 加载 3 部门样例数据</button>
+    <a class="btn" href="../../">← 返回工具箱官网</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('file-in').click()">
+    <div style="font-size:15px;font-weight:700">📂 拖拽多个部门报销 CSV 到此处，或点击选择文件（支持同时选多个）</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">自动兼容表头：报销人/姓名、部门、类目、金额、发票号/单据号</div>
+    <input type="file" id="file-in" accept=".csv,.txt" multiple style="display:none" />
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="k-files">0</div><div class="k">读取文件数</div></div>
+    <div class="kpi"><div class="v" id="k-valid">0</div><div class="k">合规入账单据</div></div>
+    <div class="kpi"><div class="v" id="k-amt">¥0.00</div><div class="k">合规报销总额</div></div>
+    <div class="kpi"><div class="v" id="k-bad" style="color:var(--bad)">0</div><div class="k">拦截重复/异常单据</div></div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="exportCsv('merged')">⬇ 导出合并总表.csv (Excel不乱码)</button>
+    <button class="btn btn-ok" onclick="exportCsv('dept')">⬇ 导出部门汇总.csv</button>
+    <button class="btn" onclick="exportCsv('anomaly')">⬇ 导出异常与重复清单.csv</button>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 10px;font-size:15px">部门汇总统计</h3>
+    <table><thead><tr><th>部门</th><th>合规单据数</th><th>合规总额 (元)</th></tr></thead><tbody id="dept-tb"></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 10px;font-size:15px;color:var(--bad)">异常与跨表重复发票拦截清单</h3>
+    <table><thead><tr><th>来源文件</th><th>行号</th><th>报销人</th><th>部门</th><th>金额</th><th>发票号</th><th>拦截原因</th></tr></thead><tbody id="bad-tb"></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 10px;font-size:15px">合规合并总表明细</h3>
+    <table><thead><tr><th>来源文件</th><th>报销人</th><th>部门</th><th>类目</th><th>金额</th><th>发票号</th></tr></thead><tbody id="ok-tb"></tbody></table>
+  </div>
+</div>
+
+<script>
+let STATE = { files: 0, valid: [], anomalies: [], depts: [] };
+
+function parseCsvLine(line) {
+  const out = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      out.push(cur.trim()); cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+function parseCsvText(text) {
+  const lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((ln, idx) => {
+    const vals = parseCsvLine(ln);
+    const obj = { _line: idx + 2 };
+    headers.forEach((h, i) => obj[h] = vals[i] || "");
+    return obj;
+  });
+}
+
+function pick(obj, keys) {
+  for (const k of keys) { if (obj[k] !== undefined && obj[k] !== "") return obj[k]; }
+  return "";
+}
+
+function processDatasets(datasets) {
+  const seenInv = new Map();
+  const valid = [];
+  const anomalies = [];
+  const deptMap = new Map();
+
+  for (const ds of datasets) {
+    const rows = parseCsvText(ds.text);
+    for (const r of rows) {
+      const person = pick(r, ["报销人", "姓名", "员工", "name", "employee"]) || "-";
+      const dept = pick(r, ["部门", "department", "dept"]) || ds.name.replace(/\.csv$/i, "");
+      const cat = pick(r, ["类目", "费用类型", "category", "type"]) || "办公费用";
+      const inv = pick(r, ["发票号", "发票代码", "单据号", "invoice", "invoice_no"]).toUpperCase();
+      const rawAmt = pick(r, ["金额", "报销金额", "amount"]).replace(/[¥￥,\s元]/g, "");
+      const amt = Number(rawAmt);
+
+      const reasons = [];
+      if (!rawAmt || Number.isNaN(amt) || amt <= 0) reasons.push(`金额异常(${rawAmt || "空"})`);
+      if (!inv) reasons.push("缺少发票号");
+      else if (seenInv.has(inv)) {
+        const first = seenInv.get(inv);
+        reasons.push(`重复发票号(首次见于 ${first.file} 第${first.line}行)`);
+      } else {
+        seenInv.set(inv, { file: ds.name, line: r._line });
+      }
+
+      const rec = { file: ds.name, line: r._line, person, dept, cat, amt: Number.isNaN(amt) ? 0 : amt, inv: inv || "-" };
+      if (reasons.length) {
+        anomalies.push({ ...rec, reasons });
+      } else {
+        valid.push(rec);
+        const d = deptMap.get(dept) || { dept, count: 0, total: 0 };
+        d.count += 1; d.total += rec.amt;
+        deptMap.set(dept, d);
+      }
+    }
+  }
+
+  const depts = Array.from(deptMap.values()).sort((a, b) => b.total - a.total);
+  STATE = { files: datasets.length, valid, anomalies, depts };
+  render();
+  return STATE;
+}
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function render() {
+  const totalAmt = STATE.valid.reduce((s, r) => s + r.amt, 0);
+  document.getElementById("k-files").textContent = STATE.files;
+  document.getElementById("k-valid").textContent = STATE.valid.length;
+  document.getElementById("k-amt").textContent = "¥" + totalAmt.toFixed(2);
+  document.getElementById("k-bad").textContent = STATE.anomalies.length;
+
+  document.getElementById("dept-tb").innerHTML = STATE.depts.map(d =>
+    `<tr><td><b>${esc(d.dept)}</b></td><td>${d.count}</td><td>¥${d.total.toFixed(2)}</td></tr>`
+  ).join("") || '<tr><td colspan="3" style="color:var(--muted)">暂无数据</td></tr>';
+
+  document.getElementById("bad-tb").innerHTML = STATE.anomalies.map(a =>
+    `<tr><td>${esc(a.file)}</td><td>${a.line}</td><td>${esc(a.person)}</td><td>${esc(a.dept)}</td><td>¥${a.amt.toFixed(2)}</td><td><code>${esc(a.inv)}</code></td><td><span class="badge b-bad">${esc(a.reasons.join("；"))}</span></td></tr>`
+  ).join("") || '<tr><td colspan="7" style="color:var(--muted)">无异常拦截</td></tr>';
+
+  document.getElementById("ok-tb").innerHTML = STATE.valid.map(v =>
+    `<tr><td>${esc(v.file)}</td><td>${esc(v.person)}</td><td>${esc(v.dept)}</td><td>${esc(v.cat)}</td><td>¥${v.amt.toFixed(2)}</td><td><code>${esc(v.inv)}</code></td></tr>`
+  ).join("") || '<tr><td colspan="6" style="color:var(--muted)">暂无合规明细</td></tr>';
+}
+
+function toCsvCell(v) {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportCsv(kind) {
+  let rows = [], filename = "export.csv";
+  if (kind === "merged") {
+    filename = "报销合并总表.csv";
+    rows = [["来源文件","报销人","部门","类目","金额","发票号"], ...STATE.valid.map(v => [v.file, v.person, v.dept, v.cat, v.amt.toFixed(2), v.inv])];
+  } else if (kind === "dept") {
+    filename = "部门汇总统计.csv";
+    rows = [["部门","合规单据数","合规总额"], ...STATE.depts.map(d => [d.dept, d.count, d.total.toFixed(2)])];
+  } else {
+    filename = "异常与重复清单.csv";
+    rows = [["来源文件","行号","报销人","部门","金额","发票号","拦截原因"], ...STATE.anomalies.map(a => [a.file, a.line, a.person, a.dept, a.amt.toFixed(2), a.inv, a.reasons.join("；")])];
+  }
+  const csvStr = "\uFEFF" + rows.map(r => r.map(toCsvCell).join(",")).join("\r\n");
+  const blob = new Blob([csvStr], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+async function decodeSmart(file) {
+  const buf = await file.arrayBuffer();
+  const u8 = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+  if (!u8.includes("\uFFFD")) return u8;
+  try { return new TextDecoder("gb18030").decode(buf); } catch (_) { return u8; }
+}
+
+async function handleFiles(fileList) {
+  const datasets = [];
+  for (const f of fileList) {
+    datasets.push({ name: f.name, text: await decodeSmart(f) });
+  }
+  if (datasets.length) processDatasets(datasets);
+}
+
+const dz = document.getElementById("dropzone");
+dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag"); handleFiles(e.dataTransfer.files); });
+document.getElementById("file-in").addEventListener("change", e => handleFiles(e.target.files));
+
+function loadSample() {
+  processDatasets([
+    { name: "技术部_11月报销.csv", text: "报销人,部门,类目,金额,发票号\n李敏,技术部,云服务器测试,¥680.00,INV-2026-8801\n张磊,技术部,加班打车,145.00,\n赵宇,技术部,API充值,¥1200.00,INV-2026-8802" },
+    { name: "市场部_11月报销.csv", text: "报销人,部门,类目,金额,发票号\n王强,市场部,展会高铁,420.50,INV-2026-8803\n王强,市场部,复报云服务,680.00,INV-2026-8801\n孙琪,市场部,错误冲销,-90.00,INV-2026-8804" },
+    { name: "行政部_11月报销.csv", text: "报销人,部门,类目,金额,发票号\n林琳,行政部,办公耗材,310.00,INV-2026-8805" }
+  ]);
+}
+loadSample();
+</script>
+</body>
+</html>
